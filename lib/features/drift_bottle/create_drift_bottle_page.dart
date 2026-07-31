@@ -1,8 +1,7 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../../core/widgets/picked_image.dart';
 import 'data/drift_bottle.dart';
 
 /// 扔一个漂流瓶：文字（居中展示）+ 可选图片（铺底）。
@@ -17,7 +16,7 @@ class _CreateDriftBottlePageState extends State<CreateDriftBottlePage> {
   final _repo = DriftBottleRepository();
   final _picker = ImagePicker();
   final _bodyController = TextEditingController();
-  File? _image;
+  XFile? _image;
   bool _submitting = false;
 
   @override
@@ -28,7 +27,7 @@ class _CreateDriftBottlePageState extends State<CreateDriftBottlePage> {
 
   Future<void> _pick() async {
     final x = await _picker.pickImage(source: ImageSource.gallery);
-    if (x != null) setState(() => _image = File(x.path));
+    if (x != null) setState(() => _image = x);
   }
 
   Future<void> _submit() async {
@@ -83,28 +82,24 @@ class _CreateDriftBottlePageState extends State<CreateDriftBottlePage> {
               aspectRatio: 3 / 4,
               child: InkWell(
                 onTap: _pick,
-                child: Container(
-                  decoration: BoxDecoration(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: Container(
                     color:
                         Theme.of(context).colorScheme.surfaceContainerHighest,
-                    borderRadius: BorderRadius.circular(16),
-                    image: _image != null
-                        ? DecorationImage(
-                            image: FileImage(_image!), fit: BoxFit.cover)
-                        : null,
-                  ),
-                  child: _image == null
-                      ? const Center(
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.image_outlined, size: 40),
-                              SizedBox(height: 8),
-                              Text('可选：加一张铺底图'),
-                            ],
+                    child: _image != null
+                        ? PickedImageView(_image!)
+                        : const Center(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.image_outlined, size: 40),
+                                SizedBox(height: 8),
+                                Text('可选：加一张铺底图'),
+                              ],
+                            ),
                           ),
-                        )
-                      : null,
+                  ),
                 ),
               ),
             ),

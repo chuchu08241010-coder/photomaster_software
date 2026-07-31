@@ -1,5 +1,6 @@
-import 'dart:io';
+import 'package:image_picker/image_picker.dart';
 
+import '../../../core/supabase/storage_upload.dart';
 import '../../../core/supabase/supabase_client.dart';
 
 /// 美食社区（两种）。
@@ -57,8 +58,6 @@ class FoodPost {
 
 /// 美食帖仓储（图片复用 post-images 桶）。
 class FoodPostRepository {
-  static const String _bucket = 'post-images';
-
   Future<List<FoodPost>> fetchByCommunity(String community,
       {int limit = 50}) async {
     final rows = await supabase
@@ -77,19 +76,14 @@ class FoodPostRepository {
     required String storeName,
     required String body,
     String? location,
-    List<File> images = const [],
+    List<XFile> images = const [],
   }) async {
     final uid = currentUserId;
     if (uid == null) throw StateError('未登录，无法发帖');
 
     final imageUrls = <String>[];
     for (final image in images) {
-      final dot = image.path.lastIndexOf('.');
-      final ext = dot >= 0 ? image.path.substring(dot) : '.jpg';
-      final objectPath =
-          '$uid/food_${DateTime.now().millisecondsSinceEpoch}_${imageUrls.length}$ext';
-      await supabase.storage.from(_bucket).upload(objectPath, image);
-      imageUrls.add(supabase.storage.from(_bucket).getPublicUrl(objectPath));
+      imageUrls.add(await uploadImage(image, prefix: 'food'));
     }
 
     final inserted = await supabase

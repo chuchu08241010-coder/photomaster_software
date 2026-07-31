@@ -1,5 +1,6 @@
-import 'dart:io';
+import 'package:image_picker/image_picker.dart';
 
+import '../../../core/supabase/storage_upload.dart';
 import '../../../core/supabase/supabase_client.dart';
 
 /// 用户资料模型，对应 public.profiles。
@@ -23,8 +24,6 @@ class Profile {
 }
 
 class ProfileRepository {
-  static const String _bucket = 'post-images';
-
   Future<Profile?> getById(String id) async {
     final rows =
         await supabase.from('profiles').select().eq('id', id).limit(1);
@@ -53,14 +52,8 @@ class ProfileRepository {
     return Profile.fromMap(row);
   }
 
-  Future<String> uploadAvatar(File file) async {
-    final uid = currentUserId;
-    if (uid == null) throw StateError('未登录');
-    final dot = file.path.lastIndexOf('.');
-    final ext = dot >= 0 ? file.path.substring(dot) : '.jpg';
-    final objectPath = '$uid/avatar_${DateTime.now().millisecondsSinceEpoch}$ext';
-    await supabase.storage.from(_bucket).upload(objectPath, file);
-    return supabase.storage.from(_bucket).getPublicUrl(objectPath);
+  Future<String> uploadAvatar(XFile file) async {
+    return uploadImage(file, prefix: 'avatar');
   }
 }
 

@@ -1,15 +1,15 @@
-import 'dart:io';
-
 import 'package:exif/exif.dart';
+import 'package:flutter/foundation.dart';
 import 'package:google_mlkit_image_labeling/google_mlkit_image_labeling.dart';
+import 'package:image_picker/image_picker.dart';
 
 import 'exif_info.dart';
 
 /// 图片本地分析：EXIF 拍摄参数解析 + 端侧图像标签（自动 tag）。
-/// 全部离线，不上传图片。
+/// 全部离线，不上传图片。网页端 ML Kit 不可用会自动跳过。
 class ImageAnalysis {
   /// 读取一张图的拍摄参数。
-  static Future<ExifInfo?> readExif(File file) async {
+  static Future<ExifInfo?> readExif(XFile file) async {
     final data = await readExifFromBytes(await file.readAsBytes());
     if (data.isEmpty) return null;
 
@@ -28,8 +28,9 @@ class ImageAnalysis {
     return info.isEmpty ? null : info;
   }
 
-  /// 端侧图像标签，返回建议标签（英文，用户可编辑）。
-  static Future<List<String>> labelImage(File file) async {
+  /// 端侧图像标签，返回建议标签（英文，用户可编辑）。网页端返回空。
+  static Future<List<String>> labelImage(XFile file) async {
+    if (kIsWeb) return const []; // ML Kit 不支持 web
     final labeler = ImageLabeler(
       options: ImageLabelerOptions(confidenceThreshold: 0.7),
     );

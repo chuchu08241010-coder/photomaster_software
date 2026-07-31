@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../../core/widgets/picked_image.dart';
 import '../location/location_picker_page.dart';
 import 'data/food_post.dart';
 
@@ -24,7 +25,7 @@ class _CreateFoodPostPageState extends State<CreateFoodPostPage> {
   final _locationController = TextEditingController();
 
   late String _community = widget.initialCommunity;
-  final List<File> _images = [];
+  final List<XFile> _images = [];
   bool _submitting = false;
 
   @override
@@ -38,7 +39,7 @@ class _CreateFoodPostPageState extends State<CreateFoodPostPage> {
   Future<void> _pickImages() async {
     final picked = await _picker.pickMultiImage();
     if (picked.isNotEmpty) {
-      setState(() => _images.addAll(picked.map((x) => File(x.path))));
+      setState(() => _images.addAll(picked));
     }
   }
 
@@ -172,7 +173,7 @@ class _ImageStrip extends StatelessWidget {
     required this.onRemove,
   });
 
-  final List<File> images;
+  final List<XFile> images;
   final VoidCallback onAdd;
   final ValueChanged<int> onRemove;
 
@@ -191,7 +192,7 @@ class _ImageStrip extends StatelessWidget {
             children: [
               ClipRRect(
                 borderRadius: BorderRadius.circular(8),
-                child: Image.file(images[i], fit: BoxFit.cover),
+                child: PickedImageView(images[i]),
               ),
               Positioned(
                 top: 2,

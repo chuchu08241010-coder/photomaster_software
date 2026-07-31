@@ -1,12 +1,12 @@
-import 'dart:io';
+import 'package:image_picker/image_picker.dart';
 
+import '../../../core/supabase/storage_upload.dart';
 import '../../../core/supabase/supabase_client.dart';
 import 'exif_info.dart';
 import 'photo_post.dart';
 
 /// 摄影帖仓储：负责图片上传与帖子的读写。
 class PhotoPostRepository {
-  static const String _bucket = 'post-images';
 
   /// 拉取时间线（按时间倒序）。
   Future<List<PhotoPost>> fetchTimeline({int limit = 50}) async {
@@ -47,7 +47,7 @@ class PhotoPostRepository {
 
   /// 发布一条摄影帖：先上传所有图片，再插入记录。
   Future<PhotoPost> createPost({
-    required List<File> images,
+    required List<XFile> images,
     required String caption,
     required List<String> tags,
     String? location,
@@ -60,12 +60,7 @@ class PhotoPostRepository {
 
     final imageUrls = <String>[];
     for (final image in images) {
-      final dot = image.path.lastIndexOf('.');
-      final ext = dot >= 0 ? image.path.substring(dot) : '.jpg';
-      final objectPath =
-          '$userId/${DateTime.now().millisecondsSinceEpoch}_${imageUrls.length}$ext';
-      await supabase.storage.from(_bucket).upload(objectPath, image);
-      imageUrls.add(supabase.storage.from(_bucket).getPublicUrl(objectPath));
+      imageUrls.add(await uploadImage(image, prefix: 'photo'));
     }
 
     final inserted = await supabase

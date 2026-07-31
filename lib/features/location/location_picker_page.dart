@@ -70,8 +70,10 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
               ),
               children: [
                 TileLayer(
+                  // 高德地图瓦片：国内可访问、免费。style=7 为标准地图。
                   urlTemplate:
-                      'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                      'https://wprd0{s}.is.autonavi.com/appmaptile?x={x}&y={y}&z={z}&lang=zh_cn&size=1&scl=1&style=7',
+                  subdomains: const ['1', '2', '3', '4'],
                   userAgentPackageName: 'com.photomaster.photomaster',
                 ),
                 if (_picked != null)

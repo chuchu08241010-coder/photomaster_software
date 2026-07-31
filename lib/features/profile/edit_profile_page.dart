@@ -1,8 +1,7 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../../core/widgets/picked_image.dart';
 import 'data/profile.dart';
 
 /// 编辑资料：设置昵称与头像。
@@ -18,7 +17,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
   final _picker = ImagePicker();
   final _nameController = TextEditingController();
 
-  File? _avatarFile;
+  XFile? _avatarFile;
   String? _currentAvatarUrl;
   bool _loading = true;
   bool _saving = false;
@@ -47,7 +46,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
   Future<void> _pickAvatar() async {
     final x = await _picker.pickImage(source: ImageSource.gallery);
-    if (x != null) setState(() => _avatarFile = File(x.path));
+    if (x != null) setState(() => _avatarFile = x);
   }
 
   Future<void> _save() async {
@@ -98,22 +97,24 @@ class _EditProfilePageState extends State<EditProfilePage> {
                 Center(
                   child: GestureDetector(
                     onTap: _pickAvatar,
-                    child: CircleAvatar(
-                      radius: 48,
-                      backgroundColor: theme.colorScheme.primaryContainer,
-                      backgroundImage: _avatarFile != null
-                          ? FileImage(_avatarFile!)
-                          : (_currentAvatarUrl != null &&
-                                  _currentAvatarUrl!.isNotEmpty)
-                              ? NetworkImage(_currentAvatarUrl!) as ImageProvider
-                              : null,
-                      child: (_avatarFile == null &&
-                              (_currentAvatarUrl == null ||
-                                  _currentAvatarUrl!.isEmpty))
-                          ? Icon(Icons.add_a_photo_outlined,
-                              size: 32,
-                              color: theme.colorScheme.onPrimaryContainer)
-                          : null,
+                    child: ClipOval(
+                      child: SizedBox(
+                        width: 96,
+                        height: 96,
+                        child: _avatarFile != null
+                            ? PickedImageView(_avatarFile!)
+                            : (_currentAvatarUrl != null &&
+                                    _currentAvatarUrl!.isNotEmpty)
+                                ? Image.network(_currentAvatarUrl!,
+                                    fit: BoxFit.cover)
+                                : ColoredBox(
+                                    color: theme.colorScheme.primaryContainer,
+                                    child: Icon(Icons.add_a_photo_outlined,
+                                        size: 32,
+                                        color: theme
+                                            .colorScheme.onPrimaryContainer),
+                                  ),
+                      ),
                     ),
                   ),
                 ),
