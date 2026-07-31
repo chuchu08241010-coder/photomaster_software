@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>真正的自我介绍 · PhotoMaster</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #faf9f7;
+      --card: #ffffff;
+      --ink: #1c1b1a;
+      --muted: #8a8580;
+      --line: #ece9e4;
+      --accent: #e8734a;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: 'Inter', -apple-system, system-ui, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.6;
+    }
+    .wrap { max-width: 640px; margin: 0 auto; padding: 32px 20px 80px; }
+    header h1 {
+      font-size: 30px; font-weight: 700; letter-spacing: -0.5px; margin: 0 0 6px;
+    }
+    header .sub { color: var(--muted); margin: 0 0 24px; }
+    .rules {
+      background: var(--card); border: 1px solid var(--line); border-radius: 16px;
+      padding: 20px 22px; margin-bottom: 28px;
+    }
+    .rules p { margin: 0 0 10px; }
+    .rules .hl { color: var(--accent); font-weight: 600; }
+    .rules ul { margin: 8px 0 0; padding-left: 20px; color: var(--muted); }
+    .form {
+      background: var(--card); border: 1px solid var(--line); border-radius: 16px;
+      padding: 18px; margin-bottom: 28px;
+    }
+    .form input, .form textarea {
+      width: 100%; border: 1px solid var(--line); border-radius: 12px;
+      padding: 12px 14px; font: inherit; background: #fdfcfb; margin-bottom: 12px;
+      resize: vertical;
+    }
+    .form textarea { min-height: 120px; }
+    .form .row { display: flex; align-items: center; justify-content: space-between; }
+    .count { color: var(--muted); font-size: 13px; }
+    button {
+      background: var(--ink); color: #fff; border: 0; border-radius: 12px;
+      padding: 11px 20px; font: inherit; font-weight: 600; cursor: pointer;
+    }
+    button:disabled { opacity: .5; cursor: default; }
+    .list { display: flex; flex-direction: column; gap: 14px; }
+    .entry {
+      background: var(--card); border: 1px solid var(--line); border-radius: 16px;
+      padding: 16px 18px;
+    }
+    .entry .who { font-weight: 600; }
+    .entry .when { color: var(--muted); font-size: 12px; margin-left: 8px; font-weight: 400; }
+    .entry .text { margin: 8px 0 0; white-space: pre-wrap; }
+    .empty { color: var(--muted); text-align: center; padding: 24px; }
+    .section-title { font-weight: 700; font-size: 18px; margin: 4px 0 14px; letter-spacing: -0.3px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>真正的自我介绍</h1>
+      <p class="sub">PhotoMaster 小圈子快闪活动 · 大家互相认识一下</p>
+    </header>
+
+    <div class="rules">
+      <p><span class="hl">请你真正地介绍你自己。</span></p>
+      <p>你不能使用你的职业、身份、籍贯、年龄、性取向、MBTI、星座、拥有物、社会名词化的爱好（「我是一个吃货」）等外在标签——就是真正地介绍「你」。</p>
+      <p>在下面写下你先能想到的 <span class="hl">100 个字</span>，越细节越接近真实的你。这也就是你未来在遇到新朋友时，真正的自我介绍。</p>
+      <ul>
+        <li>不贴标签，写真实的感受、习惯、瞬间</li>
+        <li>越具体越好</li>
+      </ul>
+    </div>
+
+    <div class="form">
+      <input id="name" maxlength="40" placeholder="想被怎么称呼（昵称）" />
+      <textarea id="body" maxlength="500" placeholder="真正地介绍你自己……"></textarea>
+      <div class="row">
+        <span class="count"><span id="count">0</span> 字</span>
+        <button id="submit">写下我的自我介绍</button>
+      </div>
+    </div>
+
+    <div class="section-title">大家的自我介绍</div>
+    <div id="list" class="list"><div class="empty">正在加载…</div></div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    // 公开的 anon key（客户端可用，配合 RLS）。
+    const SUPABASE_URL = 'https://hubcqyulnxejvhcfmjxb.supabase.co';
+    const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh1YmNxeXVsbnhlanZoY2ZtanhiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0NDA5MzUsImV4cCI6MjEwMTAxNjkzNX0._z7TFx6N4LXcNTeVcxWWn5waQ8S0tONASisq56YlATY';
+    const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+    const $ = (id) => document.getElementById(id);
+    const bodyEl = $('body'), nameEl = $('name'), listEl = $('list'), btn = $('submit');
+
+    bodyEl.addEventListener('input', () => { $('count').textContent = bodyEl.value.length; });
+
+    function fmt(ts) {
+      const d = new Date(ts);
+      const p = (n) => String(n).padStart(2, '0');
+      return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+    }
+    function esc(s) {
+      return s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    }
+
+    async function load() {
+      const { data, error } = await sb.from('intro_wall').select('*').order('created_at', { ascending: false }).limit(200);
+      if (error) { listEl.innerHTML = `<div class="empty">加载失败：${esc(error.message)}</div>`; return; }
+      if (!data || data.length === 0) { listEl.innerHTML = '<div class="empty">还没有人写，来做第一个 ✍️</div>'; return; }
+      listEl.innerHTML = data.map((e) => `
+        <div class="entry">
+          <div><span class="who">${esc(e.name || '匿名')}</span><span class="when">${fmt(e.created_at)}</span></div>
+          <div class="text">${esc(e.body)}</div>
+        </div>`).join('');
+    }
+
+    btn.addEventListener('click', async () => {
+      const name = nameEl.value.trim();
+      const body = bodyEl.value.trim();
+      if (!body) { alert('先写点什么吧'); return; }
+      btn.disabled = true; btn.textContent = '提交中…';
+      const { error } = await sb.from('intro_wall').insert({ name: name || '匿名', body });
+      btn.disabled = false; btn.textContent = '写下我的自我介绍';
+      if (error) { alert('提交失败：' + error.message); return; }
+      bodyEl.value = ''; nameEl.value = ''; $('count').textContent = '0';
+      load();
+    });
+
+    load();
+  </script>
+</body>
+</html>

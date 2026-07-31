@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/supabase/supabase_client.dart';
+import '../drift_bottle/drift_bottle_page.dart';
 import '../photography/data/photo_post_repository.dart';
 import '../photography/photo_post_list_page.dart';
 import '../settings/settings_page.dart';
@@ -128,6 +130,13 @@ class _ProfilePageState extends State<ProfilePage> {
             title: Text('邀请好友'),
           ),
           ListTile(
+            leading: const Icon(Icons.water_drop_outlined),
+            title: const Text('漂流瓶'),
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const DriftBottlePage()),
+            ),
+          ),
+          ListTile(
             leading: const Icon(Icons.palette_outlined),
             title: const Text('配色方案'),
             onTap: () => Navigator.of(context).push(
@@ -139,7 +148,11 @@ class _ProfilePageState extends State<ProfilePage> {
             leading: Icon(Icons.logout, color: theme.colorScheme.error),
             title: Text('退出登录',
                 style: TextStyle(color: theme.colorScheme.error)),
-            onTap: () => context.go('/login'),
+            onTap: () async {
+              final prefs = await SharedPreferences.getInstance();
+              await prefs.remove('joined_circle');
+              if (context.mounted) context.go('/login');
+            },
           ),
         ],
       ),

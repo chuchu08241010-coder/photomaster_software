@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../location/location_picker_page.dart';
 import 'data/food_post.dart';
 
 /// 发美食帖：选社区(推荐/避雷) + 店名 + 正文 + 地址 + 图片(可选)。
@@ -39,6 +40,17 @@ class _CreateFoodPostPageState extends State<CreateFoodPostPage> {
     if (picked.isNotEmpty) {
       setState(() => _images.addAll(picked.map((x) => File(x.path))));
     }
+  }
+
+  Future<void> _pickLocation() async {
+    final current = _locationController.text.trim();
+    final result = await Navigator.of(context).push<String>(
+      MaterialPageRoute(
+        builder: (_) =>
+            LocationPickerPage(initialText: current.isEmpty ? null : current),
+      ),
+    );
+    if (result != null) setState(() => _locationController.text = result);
   }
 
   Future<void> _submit() async {
@@ -118,10 +130,14 @@ class _CreateFoodPostPageState extends State<CreateFoodPostPage> {
             const SizedBox(height: 16),
             TextField(
               controller: _locationController,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: '地址（可选）',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.location_on_outlined),
+                prefixIcon: const Icon(Icons.location_on_outlined),
+                suffixIcon: IconButton(
+                  icon: const Icon(Icons.map_outlined),
+                  tooltip: '地图选点',
+                  onPressed: _pickLocation,
+                ),
               ),
             ),
             const SizedBox(height: 16),

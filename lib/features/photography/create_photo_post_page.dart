@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../location/location_picker_page.dart';
 import 'data/exif_info.dart';
 import 'data/image_analysis.dart';
 import 'data/photo_post_repository.dart';
@@ -113,6 +114,17 @@ class _CreatePhotoPostPageState extends State<CreatePhotoPostPage> {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
   }
 
+  Future<void> _pickLocation() async {
+    final current = _locationController.text.trim();
+    final result = await Navigator.of(context).push<String>(
+      MaterialPageRoute(
+        builder: (_) =>
+            LocationPickerPage(initialText: current.isEmpty ? null : current),
+      ),
+    );
+    if (result != null) setState(() => _locationController.text = result);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -207,11 +219,15 @@ class _CreatePhotoPostPageState extends State<CreatePhotoPostPage> {
             const SizedBox(height: 16),
             TextField(
               controller: _locationController,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: '地址（可选）',
                 hintText: '拍摄地点',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.location_on_outlined),
+                prefixIcon: const Icon(Icons.location_on_outlined),
+                suffixIcon: IconButton(
+                  icon: const Icon(Icons.map_outlined),
+                  tooltip: '地图选点',
+                  onPressed: _pickLocation,
+                ),
               ),
             ),
             const SizedBox(height: 24),

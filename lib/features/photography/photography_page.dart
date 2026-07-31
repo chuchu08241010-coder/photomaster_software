@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/supabase/supabase_config.dart';
 import '../../core/widgets/section_placeholder.dart';
+import '../announcement/announcement_banner.dart';
 import '../social/favorite_repository.dart';
 import '../social/item_type.dart';
 import '../text_post/create_text_post_page.dart';
@@ -155,23 +156,30 @@ class _TimelineView extends StatelessWidget {
         }
         final posts = snapshot.data?.posts ?? const [];
         final favIds = snapshot.data?.favIds ?? const <String>{};
-        if (posts.isEmpty) {
-          return const SectionPlaceholder(
-            icon: Icons.dynamic_feed_outlined,
-            title: '还没有照片',
-            subtitle: '点右下角 + 发第一条摄影帖',
-          );
-        }
         return RefreshIndicator(
           onRefresh: () async => onRefresh(),
           child: ListView.builder(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            itemCount: posts.length,
-            itemBuilder: (context, i) => PhotoPostCard(
-              post: posts[i],
-              initiallyFavorited: favIds.contains(posts[i].id),
-              onDeleted: onRefresh,
-            ),
+            padding: const EdgeInsets.only(bottom: 8),
+            itemCount: posts.isEmpty ? 2 : posts.length + 1,
+            itemBuilder: (context, i) {
+              if (i == 0) return const AnnouncementBanner();
+              if (posts.isEmpty) {
+                return const Padding(
+                  padding: EdgeInsets.only(top: 80),
+                  child: SectionPlaceholder(
+                    icon: Icons.dynamic_feed_outlined,
+                    title: '还没有照片',
+                    subtitle: '点右下角 + 发第一条摄影帖',
+                  ),
+                );
+              }
+              final post = posts[i - 1];
+              return PhotoPostCard(
+                post: post,
+                initiallyFavorited: favIds.contains(post.id),
+                onDeleted: onRefresh,
+              );
+            },
           ),
         );
       },

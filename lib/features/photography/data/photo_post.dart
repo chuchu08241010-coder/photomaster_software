@@ -1,6 +1,6 @@
-/// 摄影帖数据模型，对应 Supabase 表 public.photo_posts。
 import 'exif_info.dart';
 
+/// 摄影帖数据模型，对应 Supabase 表 public.photo_posts。
 class PhotoPost {
   const PhotoPost({
     required this.id,

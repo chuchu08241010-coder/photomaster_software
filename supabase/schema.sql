@@ -215,3 +215,127 @@ create policy "food_posts_insert_own" on public.food_posts
 drop policy if exists "food_posts_delete_own" on public.food_posts;
 create policy "food_posts_delete_own" on public.food_posts
   for delete to authenticated using (auth.uid() = author_id);
+
+-- ============ 快闪活动（开发者推送，点击跳转网站） ============
+-- 用户只读；发布由开发者在 Supabase 控制台手动 insert（或用 service key）。
+
+create table if not exists public.announcements (
+  id uuid primary key default gen_random_uuid(),
+  title text not null default '',
+  subtitle text not null default '',
+  image_url text,
+  link_url text,
+  active boolean not null default true,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists announcements_active_idx
+  on public.announcements (active, created_at desc);
+
+alter table public.announcements enable row level security;
+
+drop policy if exists "announcements_select" on public.announcements;
+create policy "announcements_select" on public.announcements
+  for select to authenticated using (active = true);
+
+-- ============ 邀请码（一码一用） ============
+-- 开发者在控制台插入码，例如：
+--   insert into public.invite_codes(code) values ('PM2026'), ('FRIEND-01');
+-- 用户在登录页输入码兑换；每个码只能被一个人用一次。
+
+create table if not exists public.invite_codes (
+  code text primary key,
+  used_by uuid references auth.users(id),
+  used_at timestamptz,
+  created_at timestamptz not null default now()
+);
+
+alter table public.invite_codes enable row level security;
+-- 不给普通用户直接读写策略；只能通过下面的 security definer 函数兑换。
+
+create or replace function public.redeem_invite(p_code text)
+returns boolean
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_used_by uuid;
+begin
+  select used_by into v_used_by
+    from public.invite_codes
+    where code = p_code
+    for update;
+  if not found then
+    return false;               -- 码不存在
+  end if;
+  if v_used_by is not null then
+    return v_used_by = auth.uid();  -- 已被自己用过也放行；被别人用过则拒绝
+  end if;
+  update public.invite_codes
+    set used_by = auth.uid(), used_at = now()
+    where code = p_code;
+  return true;
+end;
+$$;
+
+grant execute on function public.redeem_invite(text) to authenticated;
+
+-- ============ 漂流瓶（圈子内随机抽，可能抽到自己） ============
+
+create table if not exists public.drift_bottles (
+  id uuid primary key default gen_random_uuid(),
+  author_id uuid not null references auth.users(id) on delete cascade,
+  body text not null default '',
+  image_url text,
+  created_at timestamptz not null default now()
+);
+
+alter table public.drift_bottles enable row level security;
+
+drop policy if exists "drift_select" on public.drift_bottles;
+create policy "drift_select" on public.drift_bottles
+  for select to authenticated using (true);
+
+drop policy if exists "drift_insert_own" on public.drift_bottles;
+create policy "drift_insert_own" on public.drift_bottles
+  for insert to authenticated with check (auth.uid() = author_id);
+
+drop policy if exists "drift_delete_own" on public.drift_bottles;
+create policy "drift_delete_own" on public.drift_bottles
+  for delete to authenticated using (auth.uid() = author_id);
+
+-- 随机捞一个漂流瓶（遵循 RLS）
+create or replace function public.random_bottle()
+returns setof public.drift_bottles
+language sql
+stable
+as $$
+  select * from public.drift_bottles order by random() limit 1;
+$$;
+
+grant execute on function public.random_bottle() to authenticated;
+
+-- ============ 「真正的自我介绍」墙（快闪活动网页用，公开可读写） ============
+-- 供外部网页（未登录访客，anon 角色）读写。
+
+create table if not exists public.intro_wall (
+  id uuid primary key default gen_random_uuid(),
+  name text not null default '',
+  body text not null default '',
+  created_at timestamptz not null default now()
+);
+
+create index if not exists intro_wall_created_at_idx
+  on public.intro_wall (created_at desc);
+
+alter table public.intro_wall enable row level security;
+
+drop policy if exists "intro_wall_select" on public.intro_wall;
+create policy "intro_wall_select" on public.intro_wall
+  for select to anon, authenticated using (true);
+
+drop policy if exists "intro_wall_insert" on public.intro_wall;
+create policy "intro_wall_insert" on public.intro_wall
+  for insert to anon, authenticated
+  with check (char_length(body) <= 500 and char_length(name) <= 40);

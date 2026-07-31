@@ -41,6 +41,9 @@ dependencies:
   shared_preferences: ^2.5.5
   exif: ^3.3.0
   google_mlkit_image_labeling: ^0.15.0
+  url_launcher: ^6.3.2
+  flutter_map: ^8.3.1
+  latlong2: ^0.10.1
 
 dev_dependencies:
   flutter_test:
