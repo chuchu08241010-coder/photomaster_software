@@ -2,9 +2,14 @@ import 'package:flutter/material.dart';
 
 import '../../core/supabase/supabase_config.dart';
 import '../../core/widgets/section_placeholder.dart';
+import '../social/favorite_repository.dart';
+import '../social/item_type.dart';
 import 'create_photo_post_page.dart';
 import 'data/photo_post.dart';
 import 'data/photo_post_repository.dart';
+import 'widgets/photo_post_card.dart';
+
+typedef TimelineData = ({List<PhotoPost> posts, Set<String> favIds});
 
 /// 摄影板块。
 /// 两个子页：时间线（朋友圈式动态）与文字帖（独立于图片分享）。
@@ -17,7 +22,8 @@ class PhotographyPage extends StatefulWidget {
 
 class _PhotographyPageState extends State<PhotographyPage> {
   final _repo = PhotoPostRepository();
-  late Future<List<PhotoPost>> _timelineFuture;
+  final _favRepo = FavoriteRepository();
+  late Future<TimelineData> _timelineFuture;
 
   @override
   void initState() {
@@ -25,9 +31,18 @@ class _PhotographyPageState extends State<PhotographyPage> {
     _timelineFuture = _load();
   }
 
-  Future<List<PhotoPost>> _load() {
-    if (!SupabaseConfig.isConfigured) return Future.value(const []);
-    return _repo.fetchTimeline();
+  Future<TimelineData> _load() async {
+    if (!SupabaseConfig.isConfigured) {
+      return (posts: <PhotoPost>[], favIds: <String>{});
+    }
+    final results = await Future.wait([
+      _repo.fetchTimeline(),
+      _favRepo.myFavoriteIds(ItemType.photoPost),
+    ]);
+    return (
+      posts: results[0] as List<PhotoPost>,
+      favIds: results[1] as Set<String>,
+    );
   }
 
   void _refresh() {
@@ -83,12 +98,12 @@ class _PhotographyPageState extends State<PhotographyPage> {
 class _TimelineView extends StatelessWidget {
   const _TimelineView({required this.future, required this.onRefresh});
 
-  final Future<List<PhotoPost>> future;
+  final Future<TimelineData> future;
   final VoidCallback onRefresh;
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<List<PhotoPost>>(
+    return FutureBuilder<TimelineData>(
       future: future,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
@@ -101,7 +116,8 @@ class _TimelineView extends StatelessWidget {
             subtitle: '${snapshot.error}',
           );
         }
-        final posts = snapshot.data ?? const [];
+        final posts = snapshot.data?.posts ?? const [];
+        final favIds = snapshot.data?.favIds ?? const <String>{};
         if (posts.isEmpty) {
           return const SectionPlaceholder(
             icon: Icons.dynamic_feed_outlined,
@@ -114,78 +130,13 @@ class _TimelineView extends StatelessWidget {
           child: ListView.builder(
             padding: const EdgeInsets.symmetric(vertical: 8),
             itemCount: posts.length,
-            itemBuilder: (context, i) => _PhotoPostCard(post: posts[i]),
+            itemBuilder: (context, i) => PhotoPostCard(
+              post: posts[i],
+              initiallyFavorited: favIds.contains(posts[i].id),
+            ),
           ),
         );
       },
-    );
-  }
-}
-
-class _PhotoPostCard extends StatelessWidget {
-  const _PhotoPostCard({required this.post});
-
-  final PhotoPost post;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      clipBehavior: Clip.antiAlias,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (post.imageUrls.isNotEmpty)
-            AspectRatio(
-              aspectRatio: 1,
-              child: PageView(
-                children: [
-                  for (final url in post.imageUrls)
-                    Image.network(url, fit: BoxFit.cover),
-                ],
-              ),
-            ),
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (post.caption.isNotEmpty) Text(post.caption),
-                if (post.tags.isNotEmpty) ...[
-                  const SizedBox(height: 6),
-                  Wrap(
-                    spacing: 6,
-                    runSpacing: -6,
-                    children: [
-                      for (final tag in post.tags)
-                        Chip(
-                          label: Text('#$tag'),
-                          visualDensity: VisualDensity.compact,
-                          materialTapTargetSize:
-                              MaterialTapTargetSize.shrinkWrap,
-                        ),
-                    ],
-                  ),
-                ],
-                if (post.location != null && post.location!.isNotEmpty) ...[
-                  const SizedBox(height: 6),
-                  Row(
-                    children: [
-                      Icon(Icons.location_on_outlined,
-                          size: 16, color: theme.colorScheme.outline),
-                      const SizedBox(width: 4),
-                      Text(post.location!,
-                          style: theme.textTheme.bodySmall
-                              ?.copyWith(color: theme.colorScheme.outline)),
-                    ],
-                  ),
-                ],
-              ],
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

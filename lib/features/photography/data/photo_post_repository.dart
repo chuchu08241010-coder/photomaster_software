@@ -19,6 +19,31 @@ class PhotoPostRepository {
         .toList();
   }
 
+  /// 拉取某作者的全部帖子（个人主页用）。
+  Future<List<PhotoPost>> fetchByAuthor(String authorId) async {
+    final rows = await supabase
+        .from('photo_posts')
+        .select()
+        .eq('author_id', authorId)
+        .order('created_at', ascending: false);
+    return (rows as List)
+        .map((e) => PhotoPost.fromMap(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  /// 按 id 批量拉取（我的收藏用）。
+  Future<List<PhotoPost>> fetchByIds(List<String> ids) async {
+    if (ids.isEmpty) return const [];
+    final rows = await supabase
+        .from('photo_posts')
+        .select()
+        .inFilter('id', ids)
+        .order('created_at', ascending: false);
+    return (rows as List)
+        .map((e) => PhotoPost.fromMap(e as Map<String, dynamic>))
+        .toList();
+  }
+
   /// 发布一条摄影帖：先上传所有图片，再插入记录。
   Future<PhotoPost> createPost({
     required List<File> images,

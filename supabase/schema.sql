@@ -84,3 +84,57 @@ create policy "post_images_delete_own" on storage.objects
     bucket_id = 'post-images'
     and (storage.foldername(name))[1] = auth.uid()::text
   );
+
+-- ============ 收藏（通用：摄影帖/文字帖/美食帖复用） ============
+
+create table if not exists public.favorites (
+  user_id uuid not null references auth.users(id) on delete cascade,
+  item_type text not null,   -- 'photo_post' | 'text_post' | 'food_post'
+  item_id uuid not null,
+  created_at timestamptz not null default now(),
+  primary key (user_id, item_type, item_id)
+);
+
+alter table public.favorites enable row level security;
+
+-- 收藏是私人的：只能看/增/删自己的
+drop policy if exists "favorites_select_own" on public.favorites;
+create policy "favorites_select_own" on public.favorites
+  for select to authenticated using (auth.uid() = user_id);
+
+drop policy if exists "favorites_insert_own" on public.favorites;
+create policy "favorites_insert_own" on public.favorites
+  for insert to authenticated with check (auth.uid() = user_id);
+
+drop policy if exists "favorites_delete_own" on public.favorites;
+create policy "favorites_delete_own" on public.favorites
+  for delete to authenticated using (auth.uid() = user_id);
+
+-- ============ 评论（通用） ============
+
+create table if not exists public.comments (
+  id uuid primary key default gen_random_uuid(),
+  item_type text not null,
+  item_id uuid not null,
+  author_id uuid not null references auth.users(id) on delete cascade,
+  body text not null,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists comments_item_idx
+  on public.comments (item_type, item_id, created_at);
+
+alter table public.comments enable row level security;
+
+-- 评论：小圈子内登录用户都可读；只能发/删自己的
+drop policy if exists "comments_select" on public.comments;
+create policy "comments_select" on public.comments
+  for select to authenticated using (true);
+
+drop policy if exists "comments_insert_own" on public.comments;
+create policy "comments_insert_own" on public.comments
+  for insert to authenticated with check (auth.uid() = author_id);
+
+drop policy if exists "comments_delete_own" on public.comments;
+create policy "comments_delete_own" on public.comments
+  for delete to authenticated using (auth.uid() = author_id);
