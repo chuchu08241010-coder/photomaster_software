@@ -109,6 +109,7 @@ class TextPostListState extends State<TextPostList> {
                   itemBuilder: (context, i) => TextPostCard(
                     post: posts[i],
                     initiallyFavorited: favIds.contains(posts[i].id),
+                    onDeleted: reload,
                   ),
                 ),
               );

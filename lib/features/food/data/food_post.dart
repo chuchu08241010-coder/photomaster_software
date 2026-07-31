@@ -120,4 +120,8 @@ class FoodPostRepository {
         .map((e) => FoodPost.fromMap(e as Map<String, dynamic>))
         .toList();
   }
+
+  Future<void> delete(String id) async {
+    await supabase.from('food_posts').delete().eq('id', id);
+  }
 }

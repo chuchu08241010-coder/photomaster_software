@@ -98,6 +98,7 @@ class _SearchFoodPageState extends State<SearchFoodPage> {
                   itemBuilder: (context, i) => FoodPostCard(
                     post: posts[i],
                     initiallyFavorited: _favIds.contains(posts[i].id),
+                    onDeleted: () => _search(_controller.text),
                   ),
                 );
               },

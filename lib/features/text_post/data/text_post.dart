@@ -98,4 +98,8 @@ class TextPostRepository {
         .map((e) => TextPost.fromMap(e as Map<String, dynamic>))
         .toList();
   }
+
+  Future<void> delete(String id) async {
+    await supabase.from('text_posts').delete().eq('id', id);
+  }
 }

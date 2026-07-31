@@ -14,6 +14,16 @@ class FavoriteRepository {
     return (rows as List).map((e) => e['item_id'] as String).toSet();
   }
 
+  /// 某内容被收藏的总数（圈内）。
+  Future<int> count(String itemType, String itemId) async {
+    final rows = await supabase
+        .from('favorites')
+        .select('item_id')
+        .eq('item_type', itemType)
+        .eq('item_id', itemId);
+    return (rows as List).length;
+  }
+
   /// 收藏 / 取消收藏。
   Future<void> setFavorite({
     required String itemType,

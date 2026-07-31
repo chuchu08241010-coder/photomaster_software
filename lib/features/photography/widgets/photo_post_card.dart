@@ -1,59 +1,27 @@
 import 'package:flutter/material.dart';
 
 import '../../profile/widgets/author_header.dart';
-import '../../social/comments_sheet.dart';
-import '../../social/favorite_repository.dart';
 import '../../social/item_type.dart';
+import '../../social/post_actions_bar.dart';
 import '../data/photo_post.dart';
+import '../data/photo_post_repository.dart';
 
-/// 时间线/主页通用的摄影帖卡片：图片轮播 + 文案 + 标签 + 地址 + 收藏/评论。
-class PhotoPostCard extends StatefulWidget {
+/// 时间线/主页通用的摄影帖卡片：作者 + 图片 + 文案 + 标签 + 地址 + EXIF + 操作。
+class PhotoPostCard extends StatelessWidget {
   const PhotoPostCard({
     super.key,
     required this.post,
     this.initiallyFavorited = false,
+    this.onDeleted,
   });
 
   final PhotoPost post;
   final bool initiallyFavorited;
-
-  @override
-  State<PhotoPostCard> createState() => _PhotoPostCardState();
-}
-
-class _PhotoPostCardState extends State<PhotoPostCard> {
-  final _favRepo = FavoriteRepository();
-  late bool _favorited = widget.initiallyFavorited;
-  bool _busy = false;
-
-  Future<void> _toggleFavorite() async {
-    if (_busy) return;
-    final next = !_favorited;
-    setState(() {
-      _favorited = next;
-      _busy = true;
-    });
-    try {
-      await _favRepo.setFavorite(
-        itemType: ItemType.photoPost,
-        itemId: widget.post.id,
-        value: next,
-      );
-    } catch (e) {
-      setState(() => _favorited = !next); // 回滚
-      if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('操作失败：$e')));
-      }
-    } finally {
-      if (mounted) setState(() => _busy = false);
-    }
-  }
+  final VoidCallback? onDeleted;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final post = widget.post;
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       clipBehavior: Clip.antiAlias,
@@ -127,27 +95,13 @@ class _PhotoPostCardState extends State<PhotoPostCard> {
               ],
             ),
           ),
-          // 操作区：收藏 + 评论（摄影不点赞）
-          Row(
-            children: [
-              IconButton(
-                onPressed: _toggleFavorite,
-                icon: Icon(
-                  _favorited ? Icons.bookmark : Icons.bookmark_border,
-                  color: _favorited ? theme.colorScheme.primary : null,
-                ),
-                tooltip: '收藏',
-              ),
-              IconButton(
-                onPressed: () => showCommentsSheet(
-                  context,
-                  itemType: ItemType.photoPost,
-                  itemId: post.id,
-                ),
-                icon: const Icon(Icons.mode_comment_outlined),
-                tooltip: '评论',
-              ),
-            ],
+          PostActionsBar(
+            itemType: ItemType.photoPost,
+            itemId: post.id,
+            authorId: post.authorId,
+            initiallyFavorited: initiallyFavorited,
+            onDelete: () => PhotoPostRepository().delete(post.id),
+            onDeleted: onDeleted,
           ),
         ],
       ),

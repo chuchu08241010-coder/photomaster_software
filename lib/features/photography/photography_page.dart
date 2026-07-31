@@ -169,6 +169,7 @@ class _TimelineView extends StatelessWidget {
             itemBuilder: (context, i) => PhotoPostCard(
               post: posts[i],
               initiallyFavorited: favIds.contains(posts[i].id),
+              onDeleted: onRefresh,
             ),
           ),
         );

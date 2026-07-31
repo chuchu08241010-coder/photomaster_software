@@ -74,6 +74,7 @@ class FoodCommunityListState extends State<FoodCommunityList> {
             itemBuilder: (context, i) => FoodPostCard(
               post: posts[i],
               initiallyFavorited: favIds.contains(posts[i].id),
+              onDeleted: reload,
             ),
           ),
         );

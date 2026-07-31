@@ -98,10 +98,11 @@ create table if not exists public.favorites (
 
 alter table public.favorites enable row level security;
 
--- 收藏是私人的：只能看/增/删自己的
+-- 收藏：为支持「收藏数」展示，圈内登录用户可读全部；但只能增/删自己的
 drop policy if exists "favorites_select_own" on public.favorites;
-create policy "favorites_select_own" on public.favorites
-  for select to authenticated using (auth.uid() = user_id);
+drop policy if exists "favorites_select" on public.favorites;
+create policy "favorites_select" on public.favorites
+  for select to authenticated using (true);
 
 drop policy if exists "favorites_insert_own" on public.favorites;
 create policy "favorites_insert_own" on public.favorites

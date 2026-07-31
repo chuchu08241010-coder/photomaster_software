@@ -84,6 +84,11 @@ class PhotoPostRepository {
     return PhotoPost.fromMap(inserted);
   }
 
+  /// 删除自己的帖子（RLS 保证）。
+  Future<void> delete(String id) async {
+    await supabase.from('photo_posts').delete().eq('id', id);
+  }
+
   /// 关键词搜索：匹配文案/地址（模糊）或标签（包含）。
   Future<List<PhotoPost>> search(String query) async {
     final q = query.trim();

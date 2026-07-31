@@ -1,59 +1,26 @@
 import 'package:flutter/material.dart';
 
 import '../../profile/widgets/author_header.dart';
-import '../../social/comments_sheet.dart';
-import '../../social/favorite_repository.dart';
 import '../../social/item_type.dart';
+import '../../social/post_actions_bar.dart';
 import '../data/food_post.dart';
 
-/// 美食帖卡片：社区标签 + 店名 + 图片 + 正文 + 地址 + 收藏/评论。
-class FoodPostCard extends StatefulWidget {
+/// 美食帖卡片：作者 + 社区标签 + 店名 + 图片 + 正文 + 地址 + 操作。
+class FoodPostCard extends StatelessWidget {
   const FoodPostCard({
     super.key,
     required this.post,
     this.initiallyFavorited = false,
+    this.onDeleted,
   });
 
   final FoodPost post;
   final bool initiallyFavorited;
-
-  @override
-  State<FoodPostCard> createState() => _FoodPostCardState();
-}
-
-class _FoodPostCardState extends State<FoodPostCard> {
-  final _favRepo = FavoriteRepository();
-  late bool _favorited = widget.initiallyFavorited;
-  bool _busy = false;
-
-  Future<void> _toggleFavorite() async {
-    if (_busy) return;
-    final next = !_favorited;
-    setState(() {
-      _favorited = next;
-      _busy = true;
-    });
-    try {
-      await _favRepo.setFavorite(
-        itemType: ItemType.foodPost,
-        itemId: widget.post.id,
-        value: next,
-      );
-    } catch (e) {
-      setState(() => _favorited = !next);
-      if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('操作失败：$e')));
-      }
-    } finally {
-      if (mounted) setState(() => _busy = false);
-    }
-  }
+  final VoidCallback? onDeleted;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final post = widget.post;
     final badgeColor = post.isRecommend ? Colors.green : Colors.deepOrange;
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -130,26 +97,13 @@ class _FoodPostCardState extends State<FoodPostCard> {
               ],
             ),
           ),
-          Row(
-            children: [
-              IconButton(
-                onPressed: _toggleFavorite,
-                icon: Icon(
-                  _favorited ? Icons.bookmark : Icons.bookmark_border,
-                  color: _favorited ? theme.colorScheme.primary : null,
-                ),
-                tooltip: '收藏',
-              ),
-              IconButton(
-                onPressed: () => showCommentsSheet(
-                  context,
-                  itemType: ItemType.foodPost,
-                  itemId: post.id,
-                ),
-                icon: const Icon(Icons.mode_comment_outlined),
-                tooltip: '评论',
-              ),
-            ],
+          PostActionsBar(
+            itemType: ItemType.foodPost,
+            itemId: post.id,
+            authorId: post.authorId,
+            initiallyFavorited: initiallyFavorited,
+            onDelete: () => FoodPostRepository().delete(post.id),
+            onDeleted: onDeleted,
           ),
         ],
       ),

@@ -77,6 +77,7 @@ class _PhotoPostListPageState extends State<PhotoPostListPage> {
               itemBuilder: (context, i) => PhotoPostCard(
                 post: posts[i],
                 initiallyFavorited: favIds.contains(posts[i].id),
+                onDeleted: () => setState(() => _future = _load()),
               ),
             ),
           );
