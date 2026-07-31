@@ -90,6 +90,7 @@ class _FoodPageState extends State<FoodPage>
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _openCreate,
+        tooltip: '发美食帖',
         child: const Icon(Icons.edit),
       ),
     );

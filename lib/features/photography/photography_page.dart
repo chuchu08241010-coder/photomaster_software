@@ -125,6 +125,7 @@ class _PhotographyPageState extends State<PhotographyPage>
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _openCreate,
+        tooltip: isText ? '发文字帖' : '发摄影帖',
         child: Icon(isText ? Icons.edit : Icons.add_a_photo),
       ),
     );
