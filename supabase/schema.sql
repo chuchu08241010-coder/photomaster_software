@@ -176,3 +176,36 @@ create policy "text_posts_insert_own" on public.text_posts
 drop policy if exists "text_posts_delete_own" on public.text_posts;
 create policy "text_posts_delete_own" on public.text_posts
   for delete to authenticated using (auth.uid() = author_id);
+
+-- ============ 美食帖（两社区：推荐 / 避雷） ============
+-- community: recommend(推荐) | avoid(避雷)
+
+create table if not exists public.food_posts (
+  id uuid primary key default gen_random_uuid(),
+  author_id uuid not null references auth.users(id) on delete cascade,
+  community text not null,
+  store_name text not null default '',
+  body text not null default '',
+  location text,
+  image_urls text[] not null default '{}',
+  created_at timestamptz not null default now()
+);
+
+create index if not exists food_posts_created_at_idx
+  on public.food_posts (created_at desc);
+create index if not exists food_posts_community_idx
+  on public.food_posts (community, created_at desc);
+
+alter table public.food_posts enable row level security;
+
+drop policy if exists "food_posts_select" on public.food_posts;
+create policy "food_posts_select" on public.food_posts
+  for select to authenticated using (true);
+
+drop policy if exists "food_posts_insert_own" on public.food_posts;
+create policy "food_posts_insert_own" on public.food_posts
+  for insert to authenticated with check (auth.uid() = author_id);
+
+drop policy if exists "food_posts_delete_own" on public.food_posts;
+create policy "food_posts_delete_own" on public.food_posts
+  for delete to authenticated using (auth.uid() = author_id);
