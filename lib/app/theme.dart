@@ -72,17 +72,122 @@ ThemeData buildAppTheme(AppPalette p) {
     onSecondary: onColorFor(p.secondary),
     tertiary: p.accent,
     onTertiary: onColorFor(p.accent),
+    surface: Colors.white,
   );
+
+  const font = 'Inter';
+
+  // 简约时尚：紧凑字距、清晰层级、充足留白。
+  final text = ThemeData.light().textTheme.apply(fontFamily: font).copyWith(
+        headlineMedium: const TextStyle(
+            fontFamily: font,
+            fontWeight: FontWeight.w700,
+            letterSpacing: -0.5),
+        titleLarge: const TextStyle(
+            fontFamily: font,
+            fontWeight: FontWeight.w600,
+            letterSpacing: -0.3),
+        titleMedium: const TextStyle(
+            fontFamily: font,
+            fontWeight: FontWeight.w600,
+            letterSpacing: -0.2),
+        bodyLarge: const TextStyle(fontFamily: font, height: 1.4),
+        bodyMedium: const TextStyle(fontFamily: font, height: 1.4),
+        bodySmall: const TextStyle(fontFamily: font, height: 1.3),
+        labelLarge: const TextStyle(
+            fontFamily: font, fontWeight: FontWeight.w600),
+      );
 
   return ThemeData(
     useMaterial3: true,
     colorScheme: scheme,
-    scaffoldBackgroundColor: scheme.surface,
+    fontFamily: font,
+    textTheme: text,
+    scaffoldBackgroundColor: Colors.white,
+    visualDensity: VisualDensity.standard,
+    splashFactory: InkSparkle.splashFactory,
     appBarTheme: AppBarTheme(
-      centerTitle: true,
-      backgroundColor: scheme.surface,
+      centerTitle: false,
+      backgroundColor: Colors.white,
+      surfaceTintColor: Colors.transparent,
       foregroundColor: scheme.onSurface,
       elevation: 0,
+      scrolledUnderElevation: 0.5,
+      titleTextStyle: TextStyle(
+        fontFamily: font,
+        fontSize: 20,
+        fontWeight: FontWeight.w700,
+        letterSpacing: -0.3,
+        color: scheme.onSurface,
+      ),
+    ),
+    cardTheme: CardThemeData(
+      elevation: 0,
+      color: Colors.white,
+      surfaceTintColor: Colors.transparent,
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(18),
+        side: BorderSide(color: scheme.outlineVariant.withValues(alpha: 0.4)),
+      ),
+    ),
+    chipTheme: ChipThemeData(
+      backgroundColor: scheme.surfaceContainerHighest.withValues(alpha: 0.5),
+      side: BorderSide.none,
+      labelStyle: TextStyle(
+          fontFamily: font, fontSize: 12, color: scheme.onSurfaceVariant),
+      shape:
+          RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+    ),
+    inputDecorationTheme: InputDecorationTheme(
+      filled: true,
+      fillColor: scheme.surfaceContainerHighest.withValues(alpha: 0.35),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide.none,
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide.none,
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide(color: scheme.primary, width: 1.5),
+      ),
+      contentPadding:
+          const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+    ),
+    filledButtonTheme: FilledButtonThemeData(
+      style: FilledButton.styleFrom(
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        textStyle: const TextStyle(
+            fontFamily: font, fontWeight: FontWeight.w600, fontSize: 15),
+      ),
+    ),
+    navigationBarTheme: NavigationBarThemeData(
+      backgroundColor: Colors.white,
+      surfaceTintColor: Colors.transparent,
+      elevation: 0,
+      height: 64,
+      labelTextStyle: WidgetStatePropertyAll(
+        TextStyle(
+            fontFamily: font, fontSize: 12, fontWeight: FontWeight.w500),
+      ),
+      indicatorColor: scheme.primary.withValues(alpha: 0.12),
+    ),
+    tabBarTheme: TabBarThemeData(
+      labelStyle: const TextStyle(
+          fontFamily: font, fontWeight: FontWeight.w600, fontSize: 15),
+      unselectedLabelStyle:
+          const TextStyle(fontFamily: font, fontWeight: FontWeight.w500),
+      indicatorSize: TabBarIndicatorSize.label,
+      dividerColor: Colors.transparent,
+    ),
+    dividerTheme: DividerThemeData(
+      color: scheme.outlineVariant.withValues(alpha: 0.5),
+      thickness: 0.5,
+      space: 1,
     ),
   );
 }

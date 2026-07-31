@@ -6,12 +6,17 @@ class FavoriteRepository {
   Future<Set<String>> myFavoriteIds(String itemType) async {
     final uid = currentUserId;
     if (uid == null) return {};
-    final rows = await supabase
-        .from('favorites')
-        .select('item_id')
-        .eq('user_id', uid)
-        .eq('item_type', itemType);
-    return (rows as List).map((e) => e['item_id'] as String).toSet();
+    try {
+      final rows = await supabase
+          .from('favorites')
+          .select('item_id')
+          .eq('user_id', uid)
+          .eq('item_type', itemType);
+      return (rows as List).map((e) => e['item_id'] as String).toSet();
+    } catch (_) {
+      // favorites 表缺失等异常时退化为空，避免拖垮整个列表加载。
+      return {};
+    }
   }
 
   /// 某内容被收藏的总数（圈内）。
