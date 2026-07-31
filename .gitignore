@@ -50,3 +50,6 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# \u8c03\u8bd5\u622a\u56fe
+/_shot_*.png
