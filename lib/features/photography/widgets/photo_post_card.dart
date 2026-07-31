@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../profile/widgets/author_header.dart';
 import '../../social/comments_sheet.dart';
 import '../../social/favorite_repository.dart';
 import '../../social/item_type.dart';
@@ -59,6 +60,10 @@ class _PhotoPostCardState extends State<PhotoPostCard> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
+            child: AuthorHeader(authorId: post.authorId, time: post.createdAt),
+          ),
           if (post.imageUrls.isNotEmpty)
             AspectRatio(
               aspectRatio: 1,

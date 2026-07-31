@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../profile/widgets/author_header.dart';
 import '../../social/comments_sheet.dart';
 import '../../social/favorite_repository.dart';
 import '../../social/item_type.dart';
@@ -60,6 +61,8 @@ class _TextPostCardState extends State<TextPostCard> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            AuthorHeader(authorId: post.authorId, time: post.createdAt),
+            const SizedBox(height: 8),
             Row(
               children: [
                 Chip(

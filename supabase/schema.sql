@@ -8,6 +8,7 @@
 create table if not exists public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   display_name text,
+  avatar_url text,
   created_at timestamptz not null default now()
 );
 
@@ -143,6 +144,10 @@ create policy "comments_delete_own" on public.comments
 
 alter table public.photo_posts
   add column if not exists exif jsonb;
+
+-- 用户资料：头像（为已存在的库补列）
+alter table public.profiles
+  add column if not exists avatar_url text;
 
 -- ============ 文字帖（与图片分享隔离，6 种类型） ============
 -- type: equipment(器材) | tips(技巧/教程) | question(提问求助)

@@ -7,12 +7,32 @@ import '../photography/photo_post_list_page.dart';
 import '../settings/settings_page.dart';
 import '../social/favorite_repository.dart';
 import '../social/item_type.dart';
+import 'data/profile.dart';
+import 'edit_profile_page.dart';
 
 /// 「我的」页：个人主页 + 设置入口。
-class ProfilePage extends StatelessWidget {
+class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
 
-  void _openMyPhotos(BuildContext context) {
+  @override
+  State<ProfilePage> createState() => _ProfilePageState();
+}
+
+class _ProfilePageState extends State<ProfilePage> {
+  final _profileRepo = ProfileRepository();
+  late Future<Profile?> _profileFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _profileFuture = _profileRepo.getMine();
+  }
+
+  void _reloadProfile() {
+    setState(() => _profileFuture = _profileRepo.getMine());
+  }
+
+  void _openMyPhotos() {
     final repo = PhotoPostRepository();
     Navigator.of(context).push(MaterialPageRoute(
       builder: (_) => PhotoPostListPage(
@@ -27,7 +47,7 @@ class ProfilePage extends StatelessWidget {
     ));
   }
 
-  void _openMyFavorites(BuildContext context) {
+  void _openMyFavorites() {
     final repo = PhotoPostRepository();
     final favRepo = FavoriteRepository();
     Navigator.of(context).push(MaterialPageRoute(
@@ -42,6 +62,13 @@ class ProfilePage extends StatelessWidget {
     ));
   }
 
+  Future<void> _editProfile() async {
+    final changed = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(builder: (_) => const EditProfilePage()),
+    );
+    if (changed == true) _reloadProfile();
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -50,26 +77,51 @@ class ProfilePage extends StatelessWidget {
       body: ListView(
         children: [
           const SizedBox(height: 24),
-          CircleAvatar(
-            radius: 40,
-            backgroundColor: theme.colorScheme.primaryContainer,
-            child: Icon(Icons.person,
-                size: 40, color: theme.colorScheme.onPrimaryContainer),
+          FutureBuilder<Profile?>(
+            future: _profileFuture,
+            builder: (context, snapshot) {
+              final profile = snapshot.data;
+              final avatarUrl = profile?.avatarUrl;
+              return Column(
+                children: [
+                  GestureDetector(
+                    onTap: _editProfile,
+                    child: CircleAvatar(
+                      radius: 40,
+                      backgroundColor: theme.colorScheme.primaryContainer,
+                      backgroundImage:
+                          (avatarUrl != null && avatarUrl.isNotEmpty)
+                              ? NetworkImage(avatarUrl)
+                              : null,
+                      child: (avatarUrl == null || avatarUrl.isEmpty)
+                          ? Icon(Icons.person,
+                              size: 40,
+                              color: theme.colorScheme.onPrimaryContainer)
+                          : null,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(profile?.name ?? '未设置昵称',
+                      style: theme.textTheme.titleMedium),
+                  TextButton.icon(
+                    onPressed: _editProfile,
+                    icon: const Icon(Icons.edit, size: 16),
+                    label: const Text('编辑资料'),
+                  ),
+                ],
+              );
+            },
           ),
           const SizedBox(height: 12),
-          Center(
-            child: Text('我的主页', style: theme.textTheme.titleMedium),
-          ),
-          const SizedBox(height: 24),
           ListTile(
             leading: const Icon(Icons.photo_library_outlined),
             title: const Text('我的照片'),
-            onTap: () => _openMyPhotos(context),
+            onTap: _openMyPhotos,
           ),
           ListTile(
             leading: const Icon(Icons.bookmark_border),
             title: const Text('我的收藏'),
-            onTap: () => _openMyFavorites(context),
+            onTap: _openMyFavorites,
           ),
           const ListTile(
             leading: Icon(Icons.group_add_outlined),
