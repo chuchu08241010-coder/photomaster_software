@@ -15,6 +15,10 @@ migrate_working_dir/
 # PhotoMaster: 本地 Supabase 凭据（勿提交，实际值放这里）
 /env/supabase.json
 
+# Office 临时锁文件与根目录误建的表格
+~$*
+/*.xlsx
+
 # IntelliJ related
 *.iml
 *.ipr
