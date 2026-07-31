@@ -12,6 +12,9 @@
 .swiftpm/
 migrate_working_dir/
 
+# PhotoMaster: 本地 Supabase 凭据（勿提交，实际值放这里）
+/env/supabase.json
+
 # IntelliJ related
 *.iml
 *.ipr
