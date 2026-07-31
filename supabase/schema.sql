@@ -138,3 +138,41 @@ create policy "comments_insert_own" on public.comments
 drop policy if exists "comments_delete_own" on public.comments;
 create policy "comments_delete_own" on public.comments
   for delete to authenticated using (auth.uid() = author_id);
+
+-- ============ 摄影帖：EXIF 拍摄参数（型号/光圈/快门/ISO/焦距） ============
+
+alter table public.photo_posts
+  add column if not exists exif jsonb;
+
+-- ============ 文字帖（与图片分享隔离，6 种类型） ============
+-- type: equipment(器材) | tips(技巧/教程) | question(提问求助)
+--       postprocess(后期参数) | preset(预设参数) | spot(机位分享)
+
+create table if not exists public.text_posts (
+  id uuid primary key default gen_random_uuid(),
+  author_id uuid not null references auth.users(id) on delete cascade,
+  type text not null,
+  title text not null default '',
+  body text not null default '',
+  location text,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists text_posts_created_at_idx
+  on public.text_posts (created_at desc);
+create index if not exists text_posts_type_idx
+  on public.text_posts (type, created_at desc);
+
+alter table public.text_posts enable row level security;
+
+drop policy if exists "text_posts_select" on public.text_posts;
+create policy "text_posts_select" on public.text_posts
+  for select to authenticated using (true);
+
+drop policy if exists "text_posts_insert_own" on public.text_posts;
+create policy "text_posts_insert_own" on public.text_posts
+  for insert to authenticated with check (auth.uid() = author_id);
+
+drop policy if exists "text_posts_delete_own" on public.text_posts;
+create policy "text_posts_delete_own" on public.text_posts
+  for delete to authenticated using (auth.uid() = author_id);

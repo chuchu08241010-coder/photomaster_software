@@ -4,9 +4,12 @@ import '../../core/supabase/supabase_config.dart';
 import '../../core/widgets/section_placeholder.dart';
 import '../social/favorite_repository.dart';
 import '../social/item_type.dart';
+import '../text_post/create_text_post_page.dart';
+import '../text_post/text_post_list.dart';
 import 'create_photo_post_page.dart';
 import 'data/photo_post.dart';
 import 'data/photo_post_repository.dart';
+import 'search_photo_page.dart';
 import 'widgets/photo_post_card.dart';
 
 typedef TimelineData = ({List<PhotoPost> posts, Set<String> favIds});
@@ -20,15 +23,26 @@ class PhotographyPage extends StatefulWidget {
   State<PhotographyPage> createState() => _PhotographyPageState();
 }
 
-class _PhotographyPageState extends State<PhotographyPage> {
+class _PhotographyPageState extends State<PhotographyPage>
+    with SingleTickerProviderStateMixin {
   final _repo = PhotoPostRepository();
   final _favRepo = FavoriteRepository();
+  final _textListKey = GlobalKey<TextPostListState>();
+  late final TabController _tabController;
   late Future<TimelineData> _timelineFuture;
 
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 2, vsync: this)
+      ..addListener(() => setState(() {}));
     _timelineFuture = _load();
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
   }
 
   Future<TimelineData> _load() async {
@@ -49,47 +63,69 @@ class _PhotographyPageState extends State<PhotographyPage> {
     setState(() => _timelineFuture = _load());
   }
 
-  Future<void> _openCreate() async {
+  bool _guardOnline() {
     if (!SupabaseConfig.isConfigured) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('当前为离线骨架模式，未连接云端，暂不能发帖')),
       );
-      return;
+      return false;
     }
-    final created = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(builder: (_) => const CreatePhotoPostPage()),
-    );
-    if (created == true) _refresh();
+    return true;
+  }
+
+  Future<void> _openCreate() async {
+    if (!_guardOnline()) return;
+    if (_tabController.index == 1) {
+      // 文字帖
+      final created = await Navigator.of(context).push<bool>(
+        MaterialPageRoute(builder: (_) => const CreateTextPostPage()),
+      );
+      if (created == true) _textListKey.currentState?.reload();
+    } else {
+      // 时间线（图片）
+      final created = await Navigator.of(context).push<bool>(
+        MaterialPageRoute(builder: (_) => const CreatePhotoPostPage()),
+      );
+      if (created == true) _refresh();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return DefaultTabController(
-      length: 2,
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text('摄影'),
-          bottom: const TabBar(
-            tabs: [
-              Tab(text: '时间线'),
-              Tab(text: '文字帖'),
-            ],
+    final isText = _tabController.index == 1;
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('摄影'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.search),
+            tooltip: '搜索',
+            onPressed: () {
+              if (!_guardOnline()) return;
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const SearchPhotoPage()),
+              );
+            },
           ),
-        ),
-        body: TabBarView(
-          children: [
-            _TimelineView(future: _timelineFuture, onRefresh: _refresh),
-            const SectionPlaceholder(
-              icon: Icons.article_outlined,
-              title: '文字帖分享',
-              subtitle: '分 N 种类型的文字分享，与图片隔离\n可收藏 · 评论',
-            ),
+        ],
+        bottom: TabBar(
+          controller: _tabController,
+          tabs: const [
+            Tab(text: '时间线'),
+            Tab(text: '文字帖'),
           ],
         ),
-        floatingActionButton: FloatingActionButton(
-          onPressed: _openCreate,
-          child: const Icon(Icons.add_a_photo),
-        ),
+      ),
+      body: TabBarView(
+        controller: _tabController,
+        children: [
+          _TimelineView(future: _timelineFuture, onRefresh: _refresh),
+          TextPostList(key: _textListKey),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _openCreate,
+        child: Icon(isText ? Icons.edit : Icons.add_a_photo),
       ),
     );
   }

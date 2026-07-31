@@ -104,6 +104,21 @@ class _PhotoPostCardState extends State<PhotoPostCard> {
                     ],
                   ),
                 ],
+                if (post.exif != null && !post.exif!.isEmpty) ...[
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      Icon(Icons.camera_outlined,
+                          size: 16, color: theme.colorScheme.outline),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Text(post.exif!.summary,
+                            style: theme.textTheme.bodySmall
+                                ?.copyWith(color: theme.colorScheme.outline)),
+                      ),
+                    ],
+                  ),
+                ],
               ],
             ),
           ),

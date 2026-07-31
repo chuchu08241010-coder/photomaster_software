@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import '../../../core/supabase/supabase_client.dart';
+import 'exif_info.dart';
 import 'photo_post.dart';
 
 /// 摄影帖仓储：负责图片上传与帖子的读写。
@@ -50,6 +51,7 @@ class PhotoPostRepository {
     required String caption,
     required List<String> tags,
     String? location,
+    ExifInfo? exif,
   }) async {
     final userId = currentUserId;
     if (userId == null) {
@@ -74,10 +76,37 @@ class PhotoPostRepository {
           'tags': tags,
           'location': location,
           'image_urls': imageUrls,
+          'exif': (exif == null || exif.isEmpty) ? null : exif.toJson(),
         })
         .select()
         .single();
 
     return PhotoPost.fromMap(inserted);
+  }
+
+  /// 关键词搜索：匹配文案/地址（模糊）或标签（包含）。
+  Future<List<PhotoPost>> search(String query) async {
+    final q = query.trim();
+    if (q.isEmpty) return const [];
+
+    final byText = await supabase
+        .from('photo_posts')
+        .select()
+        .or('caption.ilike.%$q%,location.ilike.%$q%')
+        .order('created_at', ascending: false);
+
+    final byTag = await supabase
+        .from('photo_posts')
+        .select()
+        .contains('tags', [q]).order('created_at', ascending: false);
+
+    final merged = <String, PhotoPost>{};
+    for (final row in [...(byText as List), ...(byTag as List)]) {
+      final post = PhotoPost.fromMap(row as Map<String, dynamic>);
+      merged[post.id] = post;
+    }
+    final list = merged.values.toList()
+      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    return list;
   }
 }

@@ -1,4 +1,6 @@
 /// 摄影帖数据模型，对应 Supabase 表 public.photo_posts。
+import 'exif_info.dart';
+
 class PhotoPost {
   const PhotoPost({
     required this.id,
@@ -8,6 +10,7 @@ class PhotoPost {
     required this.location,
     required this.imageUrls,
     required this.createdAt,
+    this.exif,
   });
 
   final String id;
@@ -17,6 +20,7 @@ class PhotoPost {
   final String? location;
   final List<String> imageUrls;
   final DateTime createdAt;
+  final ExifInfo? exif;
 
   factory PhotoPost.fromMap(Map<String, dynamic> map) {
     return PhotoPost(
@@ -31,6 +35,9 @@ class PhotoPost {
           .map((e) => e.toString())
           .toList(),
       createdAt: DateTime.parse(map['created_at'] as String),
+      exif: map['exif'] == null
+          ? null
+          : ExifInfo.fromJson(Map<String, dynamic>.from(map['exif'] as Map)),
     );
   }
 }

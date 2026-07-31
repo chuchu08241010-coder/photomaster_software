@@ -3,6 +3,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
+import 'data/exif_info.dart';
+import 'data/image_analysis.dart';
 import 'data/photo_post_repository.dart';
 
 /// 发摄影帖页面：选图 + 文案 + #标签 + 地址 → 上传发布。
@@ -22,6 +24,9 @@ class _CreatePhotoPostPageState extends State<CreatePhotoPostPage> {
 
   final List<File> _images = [];
   bool _submitting = false;
+  bool _analyzing = false;
+  ExifInfo? _exif;
+  final List<String> _suggestedTags = [];
 
   @override
   void dispose() {
@@ -35,7 +40,40 @@ class _CreatePhotoPostPageState extends State<CreatePhotoPostPage> {
     final picked = await _picker.pickMultiImage();
     if (picked.isNotEmpty) {
       setState(() => _images.addAll(picked.map((x) => File(x.path))));
+      _analyze();
     }
+  }
+
+  /// 本地分析：读第一张图的 EXIF，并对图片做端侧标签识别得到建议 tag。
+  Future<void> _analyze() async {
+    if (_images.isEmpty) return;
+    setState(() => _analyzing = true);
+    try {
+      final exif = await ImageAnalysis.readExif(_images.first);
+      final labelSet = <String>{};
+      for (final img in _images.take(3)) {
+        labelSet.addAll(await ImageAnalysis.labelImage(img));
+      }
+      if (!mounted) return;
+      setState(() {
+        _exif = exif;
+        _suggestedTags
+          ..clear()
+          ..addAll(labelSet);
+      });
+    } catch (_) {
+      // 分析失败不影响发帖
+    } finally {
+      if (mounted) setState(() => _analyzing = false);
+    }
+  }
+
+  void _addTag(String tag) {
+    final current = _tagsController.text.trim();
+    final existing = _parseTags(current).toSet();
+    if (existing.contains(tag)) return;
+    _tagsController.text = current.isEmpty ? tag : '$current $tag';
+    setState(() {});
   }
 
   List<String> _parseTags(String raw) {
@@ -60,6 +98,7 @@ class _CreatePhotoPostPageState extends State<CreatePhotoPostPage> {
         location: _locationController.text.trim().isEmpty
             ? null
             : _locationController.text.trim(),
+        exif: _exif,
       );
       if (!mounted) return;
       Navigator.of(context).pop(true);
@@ -116,6 +155,55 @@ class _CreatePhotoPostPageState extends State<CreatePhotoPostPage> {
                 prefixIcon: Icon(Icons.tag),
               ),
             ),
+            if (_analyzing) ...[
+              const SizedBox(height: 12),
+              Row(
+                children: const [
+                  SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                  SizedBox(width: 8),
+                  Text('正在本地识别拍摄参数与标签…'),
+                ],
+              ),
+            ],
+            if (_suggestedTags.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              const Text('建议标签（点按添加）',
+                  style: TextStyle(fontSize: 12, color: Colors.grey)),
+              const SizedBox(height: 6),
+              Wrap(
+                spacing: 6,
+                runSpacing: -4,
+                children: [
+                  for (final tag in _suggestedTags)
+                    ActionChip(
+                      label: Text(tag),
+                      avatar: const Icon(Icons.add, size: 16),
+                      onPressed: () => _addTag(tag),
+                    ),
+                ],
+              ),
+            ],
+            if (_exif != null && !_exif!.isEmpty) ...[
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.camera_outlined, size: 18),
+                    const SizedBox(width: 8),
+                    Expanded(child: Text(_exif!.summary)),
+                  ],
+                ),
+              ),
+            ],
             const SizedBox(height: 16),
             TextField(
               controller: _locationController,
