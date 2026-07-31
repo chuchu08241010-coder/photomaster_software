@@ -14,6 +14,17 @@ Future<void> main() async {
       url: SupabaseConfig.url,
       publishableKey: SupabaseConfig.publishableKey,
     );
+
+    // 邀请制真正落地前，先用匿名登录拿到持久用户身份，才能发帖/上传。
+    final auth = Supabase.instance.client.auth;
+    if (auth.currentSession == null) {
+      try {
+        await auth.signInAnonymously();
+      } catch (e) {
+        // 匿名登录未开启或网络问题时不阻塞启动，进离线体验。
+        debugPrint('匿名登录失败: $e');
+      }
+    }
   }
 
   runApp(const ProviderScope(child: PhotoMasterApp()));
