@@ -1,0 +1,58 @@
+# Codemagic CI/CD 配置
+# 文档：https://docs.codemagic.io/yaml/yaml-getting-started/
+#
+# 使用前需在 Codemagic 里创建一个「环境变量组」名为 supabase，包含：
+#   SUPABASE_URL              = https://hubcqyulnxejvhcfmjxb.supabase.co
+#   SUPABASE_PUBLISHABLE_KEY  = <你的 anon/publishable key>
+# （这两个值本地在 env/supabase.json，因为该文件被 git 忽略，需在 Codemagic 里另配。）
+
+workflows:
+  # ============ Android：可直接用，产物是可安装的 APK ============
+  android-release:
+    name: PhotoMaster Android (APK)
+    instance_type: linux_x2
+    max_build_duration: 60
+    environment:
+      flutter: stable
+      groups:
+        - supabase
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: main
+          include: true
+    scripts:
+      - name: Flutter pub get
+        script: flutter pub get
+      - name: Build release APK
+        script: |
+          flutter build apk --release \
+            --dart-define=SUPABASE_URL="$SUPABASE_URL" \
+            --dart-define=SUPABASE_PUBLISHABLE_KEY="$SUPABASE_PUBLISHABLE_KEY"
+    artifacts:
+      - build/**/outputs/**/*.apk
+
+  # ============ iOS：无签名构建（需 macOS 实例） ============
+  # 注意：没有 Apple 开发者账号时只能产出「无签名」构建，
+  #       只能在 Mac 的 iOS 模拟器里运行，无法安装到真机 iPhone。
+  #       有账号后：在 Codemagic 配置签名证书/描述文件，改为 `flutter build ipa`
+  #       并接 TestFlight 分发。
+  ios-unsigned:
+    name: PhotoMaster iOS (unsigned)
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    environment:
+      flutter: stable
+      groups:
+        - supabase
+    scripts:
+      - name: Flutter pub get
+        script: flutter pub get
+      - name: Build iOS (no codesign)
+        script: |
+          flutter build ios --release --no-codesign \
+            --dart-define=SUPABASE_URL="$SUPABASE_URL" \
+            --dart-define=SUPABASE_PUBLISHABLE_KEY="$SUPABASE_PUBLISHABLE_KEY"
+    artifacts:
+      - build/ios/iphoneos/*.app
