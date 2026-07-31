@@ -53,3 +53,6 @@ app.*.map.json
 
 # \u8c03\u8bd5\u622a\u56fe
 /_shot_*.png
+
+# \u7f51\u9875\u90e8\u7f72\u4e34\u65f6\u76ee\u5f55
+/netlify_site/
