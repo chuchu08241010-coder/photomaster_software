@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../settings/settings_page.dart';
+
 /// 「我的」页：个人主页 + 设置入口。骨架阶段仅展示占位与退出。
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
@@ -35,6 +37,13 @@ class ProfilePage extends StatelessWidget {
           const ListTile(
             leading: Icon(Icons.group_add_outlined),
             title: Text('邀请好友'),
+          ),
+          ListTile(
+            leading: const Icon(Icons.palette_outlined),
+            title: const Text('配色方案'),
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const SettingsPage()),
+            ),
           ),
           const Divider(),
           ListTile(
