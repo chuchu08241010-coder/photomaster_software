@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../app/theme.dart';
 import '../../core/supabase/supabase_client.dart';
+import '../../core/supabase/supabase_config.dart';
 import '../drift_bottle/drift_bottle_page.dart';
 import '../help/manual_page.dart';
 import '../photography/data/photo_post_repository.dart';
@@ -189,6 +190,11 @@ class _ProfilePageState extends State<ProfilePage> {
               title: '退出登录',
               danger: true,
               onTap: () async {
+                if (SupabaseConfig.isConfigured) {
+                  try {
+                    await supabase.auth.signOut();
+                  } catch (_) {}
+                }
                 final prefs = await SharedPreferences.getInstance();
                 await prefs.remove('joined_circle');
                 if (context.mounted) context.go('/login');

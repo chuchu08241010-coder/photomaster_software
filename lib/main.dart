@@ -14,17 +14,8 @@ Future<void> main() async {
       url: SupabaseConfig.url,
       publishableKey: SupabaseConfig.publishableKey,
     );
-
-    // 邀请制真正落地前，先用匿名登录拿到持久用户身份，才能发帖/上传。
-    final auth = Supabase.instance.client.auth;
-    if (auth.currentSession == null) {
-      try {
-        await auth.signInAnonymously();
-      } catch (e) {
-        // 匿名登录未开启或网络问题时不阻塞启动，进离线体验。
-        debugPrint('匿名登录失败: $e');
-      }
-    }
+    // 身份改为邮箱验证码登录（持久会话，换设备可找回）。
+    // 会话由 supabase_flutter 本地持久化，登录页据此判断是否已登录。
   }
 
   runApp(const ProviderScope(child: PhotoMasterApp()));
