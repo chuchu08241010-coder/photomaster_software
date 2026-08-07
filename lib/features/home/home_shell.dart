@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-/// 主壳：承载底部导航（摄影 / 美食 / 我的），各 Tab 状态独立保留。
+/// 主壳：承载底部导航（摄影 / 分析 / 我的），各 Tab 状态独立保留。
 class HomeShell extends StatelessWidget {
   const HomeShell({super.key, required this.navigationShell});
 
@@ -29,9 +29,9 @@ class HomeShell extends StatelessWidget {
             label: '摄影',
           ),
           NavigationDestination(
-            icon: Icon(Icons.restaurant_outlined),
-            selectedIcon: Icon(Icons.restaurant),
-            label: '美食',
+            icon: Icon(Icons.insights_outlined),
+            selectedIcon: Icon(Icons.insights),
+            label: '分析',
           ),
           NavigationDestination(
             icon: Icon(Icons.person_outline),
