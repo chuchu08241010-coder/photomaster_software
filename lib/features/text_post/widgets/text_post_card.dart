@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../profile/widgets/author_header.dart';
 import '../../social/item_type.dart';
 import '../../social/post_actions_bar.dart';
+import '../create_text_post_page.dart';
 import '../data/text_post.dart';
 
 /// 文字帖卡片：作者 + 类型标签 + 标题 + 正文 + 地址 + 操作。
@@ -70,6 +71,14 @@ class TextPostCard extends StatelessWidget {
               initiallyFavorited: initiallyFavorited,
               onDelete: () => TextPostRepository().delete(post.id),
               onDeleted: onDeleted,
+              onEdit: () async {
+                final ok = await Navigator.of(context).push<bool>(
+                  MaterialPageRoute(
+                    builder: (_) => CreateTextPostPage(editing: post),
+                  ),
+                );
+                if (ok == true) onDeleted?.call();
+              },
             ),
           ],
         ),

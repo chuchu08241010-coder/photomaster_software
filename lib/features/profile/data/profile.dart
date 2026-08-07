@@ -5,11 +5,13 @@ import '../../../core/supabase/supabase_client.dart';
 
 /// 用户资料模型，对应 public.profiles。
 class Profile {
-  const Profile({required this.id, this.displayName, this.avatarUrl});
+  const Profile(
+      {required this.id, this.displayName, this.avatarUrl, this.ipLocation});
 
   final String id;
   final String? displayName;
   final String? avatarUrl;
+  final String? ipLocation;
 
   String get name =>
       (displayName == null || displayName!.trim().isEmpty)
@@ -20,6 +22,7 @@ class Profile {
         id: map['id'] as String,
         displayName: map['display_name'] as String?,
         avatarUrl: map['avatar_url'] as String?,
+        ipLocation: map['ip_location'] as String?,
       );
 }
 
@@ -38,13 +41,15 @@ class ProfileRepository {
     return getById(uid);
   }
 
-  Future<Profile> upsert({String? displayName, String? avatarUrl}) async {
+  Future<Profile> upsert(
+      {String? displayName, String? avatarUrl, String? ipLocation}) async {
     final uid = currentUserId;
     if (uid == null) throw StateError('未登录');
     final data = <String, dynamic>{
       'id': uid,
       if (displayName != null) 'display_name': displayName,
       if (avatarUrl != null) 'avatar_url': avatarUrl,
+      if (ipLocation != null) 'ip_location': ipLocation,
     };
     final row =
         await supabase.from('profiles').upsert(data).select().single();

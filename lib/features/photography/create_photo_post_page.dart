@@ -1,15 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../../core/widgets/network_photo.dart';
 import '../../core/widgets/picked_image.dart';
 import '../location/location_picker_page.dart';
 import 'data/exif_info.dart';
 import 'data/image_analysis.dart';
+import 'data/photo_post.dart';
 import 'data/photo_post_repository.dart';
 
 /// 发摄影帖页面：选图 + 文案 + #标签 + 地址 → 上传发布。
+/// 传入 editing 时为编辑模式。
 class CreatePhotoPostPage extends StatefulWidget {
-  const CreatePhotoPostPage({super.key});
+  const CreatePhotoPostPage({super.key, this.editing});
+
+  final PhotoPost? editing;
 
   @override
   State<CreatePhotoPostPage> createState() => _CreatePhotoPostPageState();
@@ -23,10 +28,26 @@ class _CreatePhotoPostPageState extends State<CreatePhotoPostPage> {
   final _locationController = TextEditingController();
 
   final List<XFile> _images = [];
+  final List<String> _keepUrls = [];
   bool _submitting = false;
   bool _analyzing = false;
   ExifInfo? _exif;
   final List<String> _suggestedTags = [];
+
+  bool get _isEdit => widget.editing != null;
+
+  @override
+  void initState() {
+    super.initState();
+    final e = widget.editing;
+    if (e != null) {
+      _captionController.text = e.caption;
+      _tagsController.text = e.tags.join(' ');
+      _locationController.text = e.location ?? '';
+      _keepUrls.addAll(e.imageUrls);
+      _exif = e.exif;
+    }
+  }
 
   @override
   void dispose() {
@@ -85,21 +106,35 @@ class _CreatePhotoPostPageState extends State<CreatePhotoPostPage> {
   }
 
   Future<void> _submit() async {
-    if (_images.isEmpty) {
+    if (_images.isEmpty && _keepUrls.isEmpty) {
       _showSnack('请至少选择一张照片');
       return;
     }
     setState(() => _submitting = true);
     try {
-      await _repo.createPost(
-        images: _images,
-        caption: _captionController.text.trim(),
-        tags: _parseTags(_tagsController.text),
-        location: _locationController.text.trim().isEmpty
-            ? null
-            : _locationController.text.trim(),
-        exif: _exif,
-      );
+      if (_isEdit) {
+        await _repo.updatePost(
+          id: widget.editing!.id,
+          keepUrls: _keepUrls,
+          newImages: _images,
+          caption: _captionController.text.trim(),
+          tags: _parseTags(_tagsController.text),
+          location: _locationController.text.trim().isEmpty
+              ? null
+              : _locationController.text.trim(),
+          exif: _exif,
+        );
+      } else {
+        await _repo.createPost(
+          images: _images,
+          caption: _captionController.text.trim(),
+          tags: _parseTags(_tagsController.text),
+          location: _locationController.text.trim().isEmpty
+              ? null
+              : _locationController.text.trim(),
+          exif: _exif,
+        );
+      }
       if (!mounted) return;
       Navigator.of(context).pop(true);
     } catch (e) {
@@ -128,11 +163,11 @@ class _CreatePhotoPostPageState extends State<CreatePhotoPostPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('发摄影帖'),
+        title: Text(_isEdit ? '编辑摄影帖' : '发摄影帖'),
         actions: [
           TextButton(
             onPressed: _submitting ? null : _submit,
-            child: const Text('发布'),
+            child: Text(_isEdit ? '保存' : '发布'),
           ),
         ],
       ),
@@ -143,8 +178,10 @@ class _CreatePhotoPostPageState extends State<CreatePhotoPostPage> {
           children: [
             _ImagePickerGrid(
               images: _images,
+              keepUrls: _keepUrls,
               onAdd: _pickImages,
               onRemove: (i) => setState(() => _images.removeAt(i)),
+              onRemoveUrl: (i) => setState(() => _keepUrls.removeAt(i)),
             ),
             const SizedBox(height: 16),
             TextField(
@@ -253,11 +290,15 @@ class _ImagePickerGrid extends StatelessWidget {
     required this.images,
     required this.onAdd,
     required this.onRemove,
+    this.keepUrls = const [],
+    this.onRemoveUrl,
   });
 
   final List<XFile> images;
+  final List<String> keepUrls;
   final VoidCallback onAdd;
   final ValueChanged<int> onRemove;
+  final ValueChanged<int>? onRemoveUrl;
 
   @override
   Widget build(BuildContext context) {
@@ -268,6 +309,28 @@ class _ImagePickerGrid extends StatelessWidget {
       mainAxisSpacing: 8,
       crossAxisSpacing: 8,
       children: [
+        for (var i = 0; i < keepUrls.length; i++)
+          Stack(
+            fit: StackFit.expand,
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: NetworkPhoto(keepUrls[i]),
+              ),
+              Positioned(
+                top: 2,
+                right: 2,
+                child: GestureDetector(
+                  onTap: () => onRemoveUrl?.call(i),
+                  child: const CircleAvatar(
+                    radius: 12,
+                    backgroundColor: Colors.black54,
+                    child: Icon(Icons.close, size: 14, color: Colors.white),
+                  ),
+                ),
+              ),
+            ],
+          ),
         for (var i = 0; i < images.length; i++)
           Stack(
             fit: StackFit.expand,

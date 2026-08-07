@@ -51,10 +51,16 @@ class AuthorHeader extends StatelessWidget {
                   Text(name,
                       style: theme.textTheme.bodyMedium
                           ?.copyWith(fontWeight: FontWeight.w600)),
-                  if (time != null)
-                    Text(_fmtTime(time!),
-                        style: theme.textTheme.bodySmall
-                            ?.copyWith(color: theme.colorScheme.outline)),
+                  if (time != null || (profile?.ipLocation?.isNotEmpty ?? false))
+                    Text(
+                      [
+                        if (time != null) _fmtTime(time!),
+                        if (profile?.ipLocation?.isNotEmpty ?? false)
+                          'IP属地：${profile!.ipLocation}',
+                      ].join('　·　'),
+                      style: theme.textTheme.bodySmall
+                          ?.copyWith(color: theme.colorScheme.outline),
+                    ),
                 ],
               ),
             ),

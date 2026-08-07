@@ -5,6 +5,7 @@ import '../../../core/widgets/network_photo.dart';
 import '../../profile/widgets/author_header.dart';
 import '../../social/item_type.dart';
 import '../../social/post_actions_bar.dart';
+import '../create_photo_post_page.dart';
 import '../data/photo_post.dart';
 import '../data/photo_post_repository.dart';
 
@@ -108,6 +109,14 @@ class PhotoPostCard extends StatelessWidget {
             initiallyFavorited: initiallyFavorited,
             onDelete: () => PhotoPostRepository().delete(post.id),
             onDeleted: onDeleted,
+            onEdit: () async {
+              final ok = await Navigator.of(context).push<bool>(
+                MaterialPageRoute(
+                  builder: (_) => CreatePhotoPostPage(editing: post),
+                ),
+              );
+              if (ok == true) onDeleted?.call();
+            },
           ),
         ],
       ),

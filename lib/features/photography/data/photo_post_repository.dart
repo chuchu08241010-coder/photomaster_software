@@ -84,6 +84,29 @@ class PhotoPostRepository {
     await supabase.from('photo_posts').delete().eq('id', id);
   }
 
+  /// 编辑自己的摄影帖：keepUrls 保留的原图，newImages 新增图。
+  Future<void> updatePost({
+    required String id,
+    required List<String> keepUrls,
+    required List<XFile> newImages,
+    required String caption,
+    required List<String> tags,
+    String? location,
+    ExifInfo? exif,
+  }) async {
+    final urls = [...keepUrls];
+    for (final image in newImages) {
+      urls.add(await uploadImage(image, prefix: 'photo'));
+    }
+    await supabase.from('photo_posts').update({
+      'caption': caption,
+      'tags': tags,
+      'location': location,
+      'image_urls': urls,
+      'exif': (exif == null || exif.isEmpty) ? null : exif.toJson(),
+    }).eq('id', id);
+  }
+
   /// 关键词搜索：匹配文案/地址（模糊）或标签（包含）。
   Future<List<PhotoPost>> search(String query) async {
     final q = query.trim();

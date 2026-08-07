@@ -16,6 +16,7 @@ class PostActionsBar extends StatefulWidget {
     required this.initiallyFavorited,
     required this.onDelete,
     this.onDeleted,
+    this.onEdit,
   });
 
   final String itemType;
@@ -28,6 +29,9 @@ class PostActionsBar extends StatefulWidget {
 
   /// 删除成功后通知外部刷新列表。
   final VoidCallback? onDeleted;
+
+  /// 编辑自己的帖子（提供时才显示“编辑”）。
+  final VoidCallback? onEdit;
 
   @override
   State<PostActionsBar> createState() => _PostActionsBarState();
@@ -146,11 +150,24 @@ class _PostActionsBarState extends State<PostActionsBar> {
         ),
         const Spacer(),
         if (isMine)
-          IconButton(
-            onPressed: _confirmDelete,
-            icon: Icon(Icons.delete_outline, color: theme.colorScheme.error),
-            tooltip: '删除',
-          ),
+          if (widget.onEdit != null)
+            PopupMenuButton<String>(
+              icon: const Icon(Icons.more_horiz),
+              onSelected: (v) {
+                if (v == 'edit') widget.onEdit!();
+                if (v == 'delete') _confirmDelete();
+              },
+              itemBuilder: (_) => const [
+                PopupMenuItem(value: 'edit', child: Text('编辑')),
+                PopupMenuItem(value: 'delete', child: Text('删除')),
+              ],
+            )
+          else
+            IconButton(
+              onPressed: _confirmDelete,
+              icon: Icon(Icons.delete_outline, color: theme.colorScheme.error),
+              tooltip: '删除',
+            ),
       ],
     );
   }

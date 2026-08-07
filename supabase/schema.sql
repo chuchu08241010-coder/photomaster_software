@@ -436,3 +436,97 @@ create policy "campaign_likes_insert_own" on public.campaign_entry_likes
 drop policy if exists "campaign_likes_delete_own" on public.campaign_entry_likes;
 create policy "campaign_likes_delete_own" on public.campaign_entry_likes
   for delete to authenticated using (user_id = auth.uid());
+
+-- ============ IP 属地 ============
+
+alter table public.profiles add column if not exists ip_location text;
+
+-- ============ 评论提示（通知） ============
+
+create table if not exists public.notifications (
+  id uuid primary key default gen_random_uuid(),
+  recipient_id uuid not null references auth.users(id) on delete cascade,
+  actor_id uuid references auth.users(id) on delete set null,
+  type text not null,            -- 目前：'comment'
+  item_type text,                -- 'photo_post' / 'text_post'
+  item_id uuid,
+  body text,                     -- 评论摘要
+  read boolean not null default false,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists notifications_recipient_idx
+  on public.notifications (recipient_id, read, created_at desc);
+
+alter table public.notifications enable row level security;
+
+-- 只能看/改/删发给自己的通知；插入由触发器（security definer）完成，用户不可直接插入。
+drop policy if exists "notifications_select_own" on public.notifications;
+create policy "notifications_select_own" on public.notifications
+  for select to authenticated using (recipient_id = auth.uid());
+
+drop policy if exists "notifications_update_own" on public.notifications;
+create policy "notifications_update_own" on public.notifications
+  for update to authenticated using (recipient_id = auth.uid());
+
+drop policy if exists "notifications_delete_own" on public.notifications;
+create policy "notifications_delete_own" on public.notifications
+  for delete to authenticated using (recipient_id = auth.uid());
+
+-- 有人评论我的帖子时，自动给帖主写一条通知（自己评论自己不通知）。
+create or replace function public.notify_on_comment()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_author uuid;
+begin
+  if new.item_type = 'photo_post' then
+    select author_id into v_author from public.photo_posts where id = new.item_id;
+  elsif new.item_type = 'text_post' then
+    select author_id into v_author from public.text_posts where id = new.item_id;
+  end if;
+  if v_author is not null and v_author <> new.author_id then
+    insert into public.notifications(
+      recipient_id, actor_id, type, item_type, item_id, body)
+    values (v_author, new.author_id, 'comment', new.item_type, new.item_id,
+      left(new.body, 60));
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists trg_notify_comment on public.comments;
+create trigger trg_notify_comment
+  after insert on public.comments
+  for each row execute function public.notify_on_comment();
+
+-- ============ 版本更新推送 ============
+
+create table if not exists public.app_release (
+  id int primary key default 1,
+  version_code int not null,
+  version_name text not null,
+  notes text,
+  url text,
+  updated_at timestamptz not null default now(),
+  constraint app_release_singleton check (id = 1)
+);
+
+alter table public.app_release enable row level security;
+
+drop policy if exists "app_release_select" on public.app_release;
+create policy "app_release_select" on public.app_release
+  for select to anon, authenticated using (true);
+
+-- 发新版本时（在 SQL Editor 里）执行：更新 version_code / notes / 下载链接
+-- insert into public.app_release(id, version_code, version_name, notes, url)
+-- values (1, 2, '1.0.1', '本次更新：可编辑帖子、评论提示、IP 属地、说明书', 'https://chuchu0824.netlify.app')
+-- on conflict (id) do update set
+--   version_code = excluded.version_code,
+--   version_name = excluded.version_name,
+--   notes = excluded.notes,
+--   url = excluded.url,
+--   updated_at = now();

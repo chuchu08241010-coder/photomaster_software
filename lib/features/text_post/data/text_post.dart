@@ -102,4 +102,20 @@ class TextPostRepository {
   Future<void> delete(String id) async {
     await supabase.from('text_posts').delete().eq('id', id);
   }
+
+  /// 编辑自己的文字帖。
+  Future<void> update({
+    required String id,
+    required String type,
+    required String title,
+    required String body,
+    String? location,
+  }) async {
+    await supabase.from('text_posts').update({
+      'type': type,
+      'title': title,
+      'body': body,
+      'location': location,
+    }).eq('id', id);
+  }
 }

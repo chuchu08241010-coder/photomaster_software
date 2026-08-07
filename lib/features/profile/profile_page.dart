@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../app/theme.dart';
 import '../../core/supabase/supabase_client.dart';
 import '../drift_bottle/drift_bottle_page.dart';
+import '../help/manual_page.dart';
 import '../photography/data/photo_post_repository.dart';
 import '../photography/photo_post_list_page.dart';
 import '../settings/settings_page.dart';
@@ -120,6 +121,15 @@ class _ProfilePageState extends State<ProfilePage> {
                     profile?.name ?? '未设置昵称',
                     style: serifDisplay(size: 24),
                   ),
+                  if (profile?.ipLocation?.isNotEmpty ?? false)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Text(
+                        'IP属地：${profile!.ipLocation}',
+                        style: theme.textTheme.bodySmall
+                            ?.copyWith(color: theme.colorScheme.outline),
+                      ),
+                    ),
                   const SizedBox(height: 2),
                   TextButton.icon(
                     onPressed: _editProfile,
@@ -162,6 +172,13 @@ class _ProfilePageState extends State<ProfilePage> {
               title: '配色方案',
               onTap: () => Navigator.of(context).push(
                 MaterialPageRoute(builder: (_) => const SettingsPage()),
+              ),
+            ),
+            _MenuTile(
+              icon: Icons.menu_book_outlined,
+              title: '使用说明',
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const ManualPage()),
               ),
             ),
           ]),

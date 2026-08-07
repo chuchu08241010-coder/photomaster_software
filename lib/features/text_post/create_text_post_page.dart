@@ -3,9 +3,11 @@ import 'package:flutter/material.dart';
 import '../location/location_picker_page.dart';
 import 'data/text_post.dart';
 
-/// 发文字帖：选类型 + 标题 + 正文 + 地址（可选）。
+/// 发文字帖：选类型 + 标题 + 正文 + 地址（可选）。传入 editing 时为编辑模式。
 class CreateTextPostPage extends StatefulWidget {
-  const CreateTextPostPage({super.key});
+  const CreateTextPostPage({super.key, this.editing});
+
+  final TextPost? editing;
 
   @override
   State<CreateTextPostPage> createState() => _CreateTextPostPageState();
@@ -19,6 +21,20 @@ class _CreateTextPostPageState extends State<CreateTextPostPage> {
 
   String _type = kTextPostTypes.first.$1;
   bool _submitting = false;
+
+  bool get _isEdit => widget.editing != null;
+
+  @override
+  void initState() {
+    super.initState();
+    final e = widget.editing;
+    if (e != null) {
+      _type = e.type;
+      _titleController.text = e.title;
+      _bodyController.text = e.body;
+      _locationController.text = e.location ?? '';
+    }
+  }
 
   @override
   void dispose() {
@@ -37,14 +53,26 @@ class _CreateTextPostPageState extends State<CreateTextPostPage> {
     }
     setState(() => _submitting = true);
     try {
-      await _repo.create(
-        type: _type,
-        title: _titleController.text.trim(),
-        body: _bodyController.text.trim(),
-        location: _locationController.text.trim().isEmpty
-            ? null
-            : _locationController.text.trim(),
-      );
+      if (_isEdit) {
+        await _repo.update(
+          id: widget.editing!.id,
+          type: _type,
+          title: _titleController.text.trim(),
+          body: _bodyController.text.trim(),
+          location: _locationController.text.trim().isEmpty
+              ? null
+              : _locationController.text.trim(),
+        );
+      } else {
+        await _repo.create(
+          type: _type,
+          title: _titleController.text.trim(),
+          body: _bodyController.text.trim(),
+          location: _locationController.text.trim().isEmpty
+              ? null
+              : _locationController.text.trim(),
+        );
+      }
       if (!mounted) return;
       Navigator.of(context).pop(true);
     } catch (e) {
@@ -71,11 +99,11 @@ class _CreateTextPostPageState extends State<CreateTextPostPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('发文字帖'),
+        title: Text(_isEdit ? '编辑文字帖' : '发文字帖'),
         actions: [
           TextButton(
             onPressed: _submitting ? null : _submit,
-            child: const Text('发布'),
+            child: Text(_isEdit ? '保存' : '发布'),
           ),
         ],
       ),

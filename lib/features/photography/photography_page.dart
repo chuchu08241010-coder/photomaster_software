@@ -3,10 +3,14 @@ import 'package:flutter/material.dart';
 import '../../core/supabase/supabase_config.dart';
 import '../../core/widgets/section_placeholder.dart';
 import '../announcement/announcement_banner.dart';
+import '../location/data/ip_location_service.dart';
+import '../notifications/data/notification.dart';
+import '../notifications/notifications_page.dart';
 import '../social/favorite_repository.dart';
 import '../social/item_type.dart';
 import '../text_post/create_text_post_page.dart';
 import '../text_post/text_post_list.dart';
+import '../update/update_checker.dart';
 import 'create_photo_post_page.dart';
 import 'data/photo_post.dart';
 import 'data/photo_post_repository.dart';
@@ -28,9 +32,11 @@ class _PhotographyPageState extends State<PhotographyPage>
     with SingleTickerProviderStateMixin {
   final _repo = PhotoPostRepository();
   final _favRepo = FavoriteRepository();
+  final _notifRepo = NotificationRepository();
   final _textListKey = GlobalKey<TextPostListState>();
   late final TabController _tabController;
   late Future<TimelineData> _timelineFuture;
+  int _unread = 0;
 
   @override
   void initState() {
@@ -38,6 +44,25 @@ class _PhotographyPageState extends State<PhotographyPage>
     _tabController = TabController(length: 2, vsync: this)
       ..addListener(() => setState(() {}));
     _timelineFuture = _load();
+    _loadUnread();
+    // 首帧后：检查新版本、刷新 IP 属地（每天一次）。
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) UpdateChecker.maybePrompt(context);
+      IpLocationService.refreshDaily();
+    });
+  }
+
+  Future<void> _loadUnread() async {
+    if (!SupabaseConfig.isConfigured) return;
+    final n = await _notifRepo.unreadCount();
+    if (mounted) setState(() => _unread = n);
+  }
+
+  Future<void> _openNotifications() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const NotificationsPage()),
+    );
+    _loadUnread();
   }
 
   @override
@@ -98,6 +123,19 @@ class _PhotographyPageState extends State<PhotographyPage>
       appBar: AppBar(
         title: const Text('摄影'),
         actions: [
+          IconButton(
+            icon: _unread > 0
+                ? Badge(
+                    label: Text('$_unread'),
+                    child: const Icon(Icons.notifications_none),
+                  )
+                : const Icon(Icons.notifications_none),
+            tooltip: '消息',
+            onPressed: () {
+              if (!_guardOnline()) return;
+              _openNotifications();
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.search),
             tooltip: '搜索',
