@@ -1,12 +1,16 @@
 import 'dart:typed_data';
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../../core/widgets/picked_image.dart';
 import 'compare_page.dart';
 import 'data/full_exif.dart';
 import 'data/image_metrics.dart';
+import 'data/metric_guide.dart';
 import 'widgets/analysis_charts.dart';
 
 /// 「分析」板块：端侧画质分析 + 直方图/波形 + 深度 EXIF。
@@ -20,6 +24,7 @@ class ImageLabPage extends StatefulWidget {
 
 class _ImageLabPageState extends State<ImageLabPage> {
   final _picker = ImagePicker();
+  final _cardKey = GlobalKey();
 
   XFile? _picked;
   ImageMetrics? _metrics;
@@ -62,6 +67,12 @@ class _ImageLabPageState extends State<ImageLabPage> {
       appBar: AppBar(
         title: const Text('画质分析'),
         actions: [
+          if (_metrics != null)
+            IconButton(
+              onPressed: _saveCard,
+              icon: const Icon(Icons.ios_share),
+              tooltip: '保存/分享分析图',
+            ),
           IconButton(
             onPressed: () => Navigator.of(context).push(
               MaterialPageRoute(builder: (_) => const ComparePage()),
@@ -145,6 +156,12 @@ class _ImageLabPageState extends State<ImageLabPage> {
           )
         else if (_metrics != null) ...[
           _scoreCard(_metrics!),
+          const SizedBox(height: 12),
+          OutlinedButton.icon(
+            onPressed: () => _showGuide(_metrics!),
+            icon: const Icon(Icons.menu_book_outlined, size: 18),
+            label: const Text('每项指标怎么看？点这里解读'),
+          ),
           const SizedBox(height: 20),
           _sectionTitle('RGB 直方图'),
           HistogramChart(metrics: _metrics!),
@@ -176,7 +193,9 @@ class _ImageLabPageState extends State<ImageLabPage> {
         : s >= 50
             ? Colors.orange
             : Colors.red;
-    return Container(
+    return RepaintBoundary(
+      key: _cardKey,
+      child: Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
@@ -232,7 +251,19 @@ class _ImageLabPageState extends State<ImageLabPage> {
               '噪声=Immerkær σ；对比度=RMS；动态范围=0.5%~99.5% 分位跨度',
               style: theme.textTheme.bodySmall
                   ?.copyWith(color: theme.colorScheme.outline)),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Icon(Icons.insights,
+                  size: 14, color: theme.colorScheme.primary),
+              const SizedBox(width: 4),
+              Text('PhotoMaster · 端侧画质分析',
+                  style: theme.textTheme.bodySmall
+                      ?.copyWith(color: theme.colorScheme.outline)),
+            ],
+          ),
         ],
+      ),
       ),
     );
   }
@@ -254,6 +285,115 @@ class _ImageLabPageState extends State<ImageLabPage> {
               style: theme.textTheme.bodySmall
                   ?.copyWith(color: theme.colorScheme.outline)),
           Text(v, style: const TextStyle(fontWeight: FontWeight.w600)),
+        ],
+      ),
+    );
+  }
+
+  /// 把评分卡截图，交给系统分享（可保存到相册/文件，或发给好友）。
+  Future<void> _saveCard() async {
+    try {
+      final boundary =
+          _cardKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
+      if (boundary == null) return;
+      final image = await boundary.toImage(pixelRatio: 3);
+      final bd = await image.toByteData(format: ui.ImageByteFormat.png);
+      if (bd == null) return;
+      final bytes = bd.buffer.asUint8List();
+      final file = XFile.fromData(bytes,
+          mimeType: 'image/png', name: 'photomaster_analysis.png');
+      await SharePlus.instance
+          .share(ShareParams(files: [file], text: 'PhotoMaster 画质分析'));
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('保存失败：$e')));
+      }
+    }
+  }
+
+  Color _verdictColor(Verdict v) {
+    switch (v) {
+      case Verdict.good:
+        return Colors.green;
+      case Verdict.ok:
+        return Colors.orange;
+      case Verdict.poor:
+        return Colors.red;
+      case Verdict.neutral:
+        return Theme.of(context).colorScheme.outline;
+    }
+  }
+
+  /// 指标解读弹层：每项数值 + 好坏评价 + 原理 + 参考阈值。
+  void _showGuide(ImageMetrics m) {
+    final readings = interpret(m);
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (ctx) => DraggableScrollableSheet(
+        expand: false,
+        initialChildSize: 0.85,
+        maxChildSize: 0.95,
+        builder: (ctx, controller) => ListView(
+          controller: controller,
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
+          children: [
+            Text('指标解读', style: Theme.of(ctx).textTheme.titleLarge),
+            const SizedBox(height: 4),
+            Text('每个数字代表什么、好坏怎么看、原理是什么。',
+                style: TextStyle(color: Theme.of(ctx).colorScheme.outline)),
+            const SizedBox(height: 16),
+            for (final r in readings) _guideRow(r),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _guideRow(MetricReading r) {
+    final theme = Theme.of(context);
+    final c = _verdictColor(r.verdict);
+    return Container(
+      margin: const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(r.name,
+                    style: const TextStyle(
+                        fontWeight: FontWeight.w700, fontSize: 15)),
+              ),
+              Text(r.value, style: const TextStyle(fontWeight: FontWeight.w600)),
+              const SizedBox(width: 8),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: c.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(r.verdictLabel,
+                    style: TextStyle(
+                        color: c, fontSize: 12, fontWeight: FontWeight.w600)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(r.meaning,
+              style: theme.textTheme.bodyMedium?.copyWith(height: 1.5)),
+          const SizedBox(height: 4),
+          Text('参考：${r.standard}',
+              style: theme.textTheme.bodySmall
+                  ?.copyWith(color: theme.colorScheme.outline)),
         ],
       ),
     );
