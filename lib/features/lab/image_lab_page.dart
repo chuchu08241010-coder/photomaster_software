@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../core/widgets/picked_image.dart';
+import 'compare_page.dart';
 import 'data/full_exif.dart';
 import 'data/image_metrics.dart';
 import 'widgets/analysis_charts.dart';
@@ -61,6 +62,13 @@ class _ImageLabPageState extends State<ImageLabPage> {
       appBar: AppBar(
         title: const Text('画质分析'),
         actions: [
+          IconButton(
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const ComparePage()),
+            ),
+            icon: const Icon(Icons.compare_outlined),
+            tooltip: '竞品对比',
+          ),
           if (_picked != null)
             IconButton(
               onPressed: _pick,
@@ -93,7 +101,7 @@ class _ImageLabPageState extends State<ImageLabPage> {
             Text('端侧画质分析', style: theme.textTheme.titleLarge),
             const SizedBox(height: 8),
             Text(
-              '选一张照片，本地计算清晰度、曝光、色温、\nRGB 直方图、亮度波形，并解析完整 EXIF。\n（全程离线，不上传）',
+              '选一张照片，本地计算清晰度、Tenengrad、噪声、对比度、\n动态范围、曝光、色温，RGB 直方图与亮度波形，并解析\n完整 EXIF。也可做竞品 A/B 对比。（全程离线，不上传）',
               textAlign: TextAlign.center,
               style: theme.textTheme.bodyMedium
                   ?.copyWith(color: theme.colorScheme.outline),
@@ -103,6 +111,14 @@ class _ImageLabPageState extends State<ImageLabPage> {
               onPressed: _pick,
               icon: const Icon(Icons.add_photo_alternate_outlined),
               label: const Text('选择照片'),
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const ComparePage()),
+              ),
+              icon: const Icon(Icons.compare_outlined),
+              label: const Text('竞品 A/B 对比'),
             ),
           ],
         ),
@@ -194,6 +210,12 @@ class _ImageLabPageState extends State<ImageLabPage> {
             runSpacing: 8,
             children: [
               _metricChip('清晰度', m.sharpnessScore.toStringAsFixed(0)),
+              _metricChip('Tenengrad', m.tenengrad.toStringAsFixed(0)),
+              _metricChip('噪声 σ', m.noiseSigma.toStringAsFixed(2)),
+              _metricChip('对比度',
+                  '${(m.rmsContrast * 100).toStringAsFixed(0)}%'),
+              _metricChip('动态范围',
+                  '${m.dynamicRangeStops.toStringAsFixed(1)} 档'),
               _metricChip('平均亮度',
                   '${(m.meanBrightness * 100).toStringAsFixed(0)}%'),
               _metricChip('高光溢出',
@@ -205,7 +227,9 @@ class _ImageLabPageState extends State<ImageLabPage> {
             ],
           ),
           const SizedBox(height: 8),
-          Text('清晰度 = 拉普拉斯方差 ${m.sharpness.toStringAsFixed(0)}（值越大越锐/对焦越实）',
+          Text(
+              '清晰度=拉普拉斯方差 ${m.sharpness.toStringAsFixed(0)}；Tenengrad=Sobel 梯度能量；'
+              '噪声=Immerkær σ；对比度=RMS；动态范围=0.5%~99.5% 分位跨度',
               style: theme.textTheme.bodySmall
                   ?.copyWith(color: theme.colorScheme.outline)),
         ],

@@ -1,0 +1,36 @@
+三、维护策略（按性价比排序）
+① 补删除时清理存储（最高优先，防止白占空间）
+删帖/删投稿/换头像时，连带把对应 Storage 文件删掉。
+
+② 缩略图方案（对“存储”和“流量”都省，省最多）
+上传时同时生成一张小缩略图（如 400px）。列表/时间线只加载缩略图（几十 KB），点开大图才加载原图。配合你已有的 cached_network_image 缓存，流量能降一个数量级。
+
+③ 压缩再收紧一点（改一行常量，立刻见效）
+最长边 1600→1280、质量 82→78，单张再省 30–40%，肉眼几乎无差。
+
+④ 防项目暂停
+用 GitHub Actions 定时任务（cron，每天一次）ping 一下数据库，避免 7 天闲置被暂停。只要朋友们常用其实也不会暂停，但加个保险更稳。
+
+⑤ 定期备份（防丢）
+免费版没时间点恢复。建议每隔一阵在 Supabase 后台导出一次数据库 + 打包下载 Storage，存本地。
+
+⑥ 到顶后的“仍然免费”升级路
+真到 1 GB 不够时，把图片搬到 Cloudflare R2（免费 10 GB 存储、且下载流量不额外收费），数据库/登录仍留 Supabase。这是长期最能扛的免费组合，比单纯的 Supabase Pro（$25/月）省钱。
+
+四、日常习惯
+每月去 Supabase 后台 Settings → Usage 看一眼存储/流量水位。
+快满时：清理孤儿文件、删旧活动、或按上面 ⑥ 迁移。
+
+
+insert into public.app_release(id, version_code, version_name, notes, url)
+values (1, 2, '1.0.1',
+  '本次更新：画册化UI、每日漂流瓶开场、主题投稿活动、帖子可编辑、评论提示、IP属地、使用说明书',
+  'https://chuchu0824.netlify.app/PhotoMaster.apk')
+on conflict (id) do update set
+  version_code = excluded.version_code,
+  version_name = excluded.version_name,
+  notes  = excluded.notes,
+  url    = excluded.url,
+  updated_at = now();
+
+以后每次发新版，重复三步即可：重新构建 APK → 覆盖 PhotoMaster.apk 并重新部署 → 把上面 SQL 的 version_code（每次 +1，要和 pubspec.yaml 里 +N 的 N 一致）和 notes 更新一下。装了当前版的朋友下次打开就会收到更新弹窗
