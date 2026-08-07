@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/supabase/supabase_config.dart';
+import '../drift_bottle/welcome_drift_page.dart';
 import '../profile/data/profile.dart';
 import 'data/invite_service.dart';
 
@@ -46,10 +47,17 @@ class _LoginPageState extends State<LoginPage> {
     }
     final prefs = await SharedPreferences.getInstance();
     if (prefs.getBool(_joinedKey) == true && mounted) {
-      context.go('/photography');
+      await _goHome();
       return;
     }
     if (mounted) setState(() => _checking = false);
+  }
+
+  /// 进入主界面：每日首次先展示漂流瓶开场，否则直达时间线。
+  Future<void> _goHome() async {
+    final showWelcome = await WelcomeDriftPage.shouldShow();
+    if (!mounted) return;
+    context.go(showWelcome ? '/welcome' : '/photography');
   }
 
   Future<void> _enter() async {
@@ -58,6 +66,7 @@ class _LoginPageState extends State<LoginPage> {
       context.go('/photography');
       return;
     }
+    // 已登录流程走到底部再统一跳转。
     final code = _inviteController.text.trim();
     final name = _nameController.text.trim();
     if (code.isEmpty) {
@@ -80,7 +89,7 @@ class _LoginPageState extends State<LoginPage> {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool(_joinedKey, true);
       if (!mounted) return;
-      context.go('/photography');
+      await _goHome();
     } catch (e) {
       _snack('进入失败：$e');
       setState(() => _submitting = false);

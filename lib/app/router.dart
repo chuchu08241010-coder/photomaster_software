@@ -1,6 +1,8 @@
 import 'package:go_router/go_router.dart';
 
 import '../features/auth/login_page.dart';
+import '../features/campaign/campaign_list_page.dart';
+import '../features/drift_bottle/welcome_drift_page.dart';
 import '../features/home/home_shell.dart';
 import '../features/lab/image_lab_page.dart';
 import '../features/photography/photography_page.dart';
@@ -17,6 +19,10 @@ final GoRouter appRouter = GoRouter(
       path: '/login',
       builder: (context, state) => const LoginPage(),
     ),
+    GoRoute(
+      path: '/welcome',
+      builder: (context, state) => const WelcomeDriftPage(),
+    ),
     StatefulShellRoute.indexedStack(
       builder: (context, state, navigationShell) =>
           HomeShell(navigationShell: navigationShell),
@@ -26,6 +32,14 @@ final GoRouter appRouter = GoRouter(
             GoRoute(
               path: '/photography',
               builder: (context, state) => const PhotographyPage(),
+            ),
+          ],
+        ),
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: '/campaigns',
+              builder: (context, state) => const CampaignListPage(),
             ),
           ],
         ),

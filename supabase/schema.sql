@@ -347,3 +347,92 @@ drop policy if exists "intro_wall_insert" on public.intro_wall;
 create policy "intro_wall_insert" on public.intro_wall
   for insert to anon, authenticated
   with check (char_length(body) <= 500 and char_length(name) <= 40);
+
+-- ============ 主题投稿活动 ============
+
+-- 活动（像公众号推送：1:1 海报 + 标题 + 规则说明）
+create table if not exists public.campaigns (
+  id uuid primary key default gen_random_uuid(),
+  title text not null default '',
+  poster_url text,
+  rules text not null default '',
+  created_by uuid references auth.users(id) on delete set null,
+  active boolean not null default true,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists campaigns_created_at_idx
+  on public.campaigns (created_at desc);
+
+-- 投稿（一次投一组图 + 文案，属于某活动）
+create table if not exists public.campaign_entries (
+  id uuid primary key default gen_random_uuid(),
+  campaign_id uuid not null references public.campaigns(id) on delete cascade,
+  author_id uuid not null references auth.users(id) on delete cascade,
+  image_urls text[] not null default '{}',
+  caption text not null default '',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists campaign_entries_campaign_idx
+  on public.campaign_entries (campaign_id, created_at desc);
+
+-- 点赞（其他用户可对投稿点赞）
+create table if not exists public.campaign_entry_likes (
+  entry_id uuid not null references public.campaign_entries(id) on delete cascade,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  primary key (entry_id, user_id)
+);
+
+alter table public.campaigns enable row level security;
+alter table public.campaign_entries enable row level security;
+alter table public.campaign_entry_likes enable row level security;
+
+-- campaigns：登录用户都可读；只能增改删自己创建的
+drop policy if exists "campaigns_select" on public.campaigns;
+create policy "campaigns_select" on public.campaigns
+  for select to authenticated using (true);
+
+drop policy if exists "campaigns_insert_own" on public.campaigns;
+create policy "campaigns_insert_own" on public.campaigns
+  for insert to authenticated with check (created_by = auth.uid());
+
+drop policy if exists "campaigns_update_own" on public.campaigns;
+create policy "campaigns_update_own" on public.campaigns
+  for update to authenticated using (created_by = auth.uid());
+
+drop policy if exists "campaigns_delete_own" on public.campaigns;
+create policy "campaigns_delete_own" on public.campaigns
+  for delete to authenticated using (created_by = auth.uid());
+
+-- campaign_entries：登录用户都可读；只能增改删自己的投稿
+drop policy if exists "campaign_entries_select" on public.campaign_entries;
+create policy "campaign_entries_select" on public.campaign_entries
+  for select to authenticated using (true);
+
+drop policy if exists "campaign_entries_insert_own" on public.campaign_entries;
+create policy "campaign_entries_insert_own" on public.campaign_entries
+  for insert to authenticated with check (author_id = auth.uid());
+
+drop policy if exists "campaign_entries_update_own" on public.campaign_entries;
+create policy "campaign_entries_update_own" on public.campaign_entries
+  for update to authenticated using (author_id = auth.uid());
+
+drop policy if exists "campaign_entries_delete_own" on public.campaign_entries;
+create policy "campaign_entries_delete_own" on public.campaign_entries
+  for delete to authenticated using (author_id = auth.uid());
+
+-- campaign_entry_likes：登录用户都可读（用于计数）；只能增删自己的赞
+drop policy if exists "campaign_likes_select" on public.campaign_entry_likes;
+create policy "campaign_likes_select" on public.campaign_entry_likes
+  for select to authenticated using (true);
+
+drop policy if exists "campaign_likes_insert_own" on public.campaign_entry_likes;
+create policy "campaign_likes_insert_own" on public.campaign_entry_likes
+  for insert to authenticated with check (user_id = auth.uid());
+
+drop policy if exists "campaign_likes_delete_own" on public.campaign_entry_likes;
+create policy "campaign_likes_delete_own" on public.campaign_entry_likes
+  for delete to authenticated using (user_id = auth.uid());

@@ -73,6 +73,9 @@ flutter:
     - family: Inter
       fonts:
         - asset: assets/fonts/Inter.ttf
+    - family: Serif
+      fonts:
+        - asset: assets/fonts/NotoSerifSC-Display.ttf
 
   # To add assets to your application, add an assets section, like this:
   # assets:

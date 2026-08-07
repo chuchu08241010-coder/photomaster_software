@@ -29,6 +29,11 @@ class HomeShell extends StatelessWidget {
             label: '摄影',
           ),
           NavigationDestination(
+            icon: Icon(Icons.campaign_outlined),
+            selectedIcon: Icon(Icons.campaign),
+            label: '活动',
+          ),
+          NavigationDestination(
             icon: Icon(Icons.insights_outlined),
             selectedIcon: Icon(Icons.insights),
             label: '分析',

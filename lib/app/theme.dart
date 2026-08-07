@@ -59,6 +59,27 @@ const List<AppPalette> kPalettes = [
 Color onColorFor(Color c) =>
     c.computeLuminance() > 0.5 ? Colors.black87 : Colors.white;
 
+/// 画册级排版所用字体族。
+const String kSerif = 'Serif'; // 思源宋体（标题/展示）
+const String kSans = 'Inter'; // 正文
+
+/// 大师摄影集式的展示标题样式（衬线、克制字距）。
+TextStyle serifDisplay({
+  double size = 28,
+  FontWeight weight = FontWeight.w600,
+  Color? color,
+  double letterSpacing = 0.5,
+  double height = 1.2,
+}) =>
+    TextStyle(
+      fontFamily: kSerif,
+      fontSize: size,
+      fontWeight: weight,
+      color: color,
+      letterSpacing: letterSpacing,
+      height: height,
+    );
+
 /// 用选定的配色方案构建全局主题。
 ThemeData buildAppTheme(AppPalette p) {
   final base = ColorScheme.fromSeed(
@@ -75,14 +96,16 @@ ThemeData buildAppTheme(AppPalette p) {
     surface: Colors.white,
   );
 
-  const font = 'Inter';
+  const font = kSans;
 
-  // 简约时尚：紧凑字距、清晰层级、充足留白。
+  // 画册风：衬线大标题定调，无衬线正文保证易读；克制字距、充足留白。
+  final ink = const Color(0xFF1A1A1A);
   final text = ThemeData.light().textTheme.apply(fontFamily: font).copyWith(
-        headlineMedium: const TextStyle(
-            fontFamily: font,
-            fontWeight: FontWeight.w700,
-            letterSpacing: -0.5),
+        displayLarge: serifDisplay(size: 40, color: ink),
+        displayMedium: serifDisplay(size: 32, color: ink),
+        displaySmall: serifDisplay(size: 26, color: ink),
+        headlineMedium: serifDisplay(size: 24, color: ink),
+        headlineSmall: serifDisplay(size: 20, color: ink),
         titleLarge: const TextStyle(
             fontFamily: font,
             fontWeight: FontWeight.w600,
@@ -91,9 +114,9 @@ ThemeData buildAppTheme(AppPalette p) {
             fontFamily: font,
             fontWeight: FontWeight.w600,
             letterSpacing: -0.2),
-        bodyLarge: const TextStyle(fontFamily: font, height: 1.4),
-        bodyMedium: const TextStyle(fontFamily: font, height: 1.4),
-        bodySmall: const TextStyle(fontFamily: font, height: 1.3),
+        bodyLarge: const TextStyle(fontFamily: font, height: 1.5),
+        bodyMedium: const TextStyle(fontFamily: font, height: 1.5),
+        bodySmall: const TextStyle(fontFamily: font, height: 1.4),
         labelLarge: const TextStyle(
             fontFamily: font, fontWeight: FontWeight.w600),
       );
@@ -114,11 +137,11 @@ ThemeData buildAppTheme(AppPalette p) {
       elevation: 0,
       scrolledUnderElevation: 0.5,
       titleTextStyle: TextStyle(
-        fontFamily: font,
-        fontSize: 20,
-        fontWeight: FontWeight.w700,
-        letterSpacing: -0.3,
-        color: scheme.onSurface,
+        fontFamily: kSerif,
+        fontSize: 22,
+        fontWeight: FontWeight.w600,
+        letterSpacing: 0.5,
+        color: ink,
       ),
     ),
     cardTheme: CardThemeData(

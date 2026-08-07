@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../app/theme.dart';
 import '../../core/supabase/supabase_client.dart';
 import '../drift_bottle/drift_bottle_page.dart';
 import '../photography/data/photo_post_repository.dart';
@@ -77,8 +78,9 @@ class _ProfilePageState extends State<ProfilePage> {
     return Scaffold(
       appBar: AppBar(title: const Text('我的')),
       body: ListView(
+        padding: const EdgeInsets.only(bottom: 32),
         children: [
-          const SizedBox(height: 24),
+          const SizedBox(height: 28),
           FutureBuilder<Profile?>(
             future: _profileFuture,
             builder: (context, snapshot) {
@@ -88,74 +90,159 @@ class _ProfilePageState extends State<ProfilePage> {
                 children: [
                   GestureDetector(
                     onTap: _editProfile,
-                    child: CircleAvatar(
-                      radius: 40,
-                      backgroundColor: theme.colorScheme.primaryContainer,
-                      backgroundImage:
-                          (avatarUrl != null && avatarUrl.isNotEmpty)
-                              ? NetworkImage(avatarUrl)
-                              : null,
-                      child: (avatarUrl == null || avatarUrl.isEmpty)
-                          ? Icon(Icons.person,
-                              size: 40,
-                              color: theme.colorScheme.onPrimaryContainer)
-                          : null,
+                    child: Container(
+                      padding: const EdgeInsets.all(3),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: theme.colorScheme.primary
+                              .withValues(alpha: 0.5),
+                          width: 1.5,
+                        ),
+                      ),
+                      child: CircleAvatar(
+                        radius: 44,
+                        backgroundColor: theme.colorScheme.primaryContainer,
+                        backgroundImage:
+                            (avatarUrl != null && avatarUrl.isNotEmpty)
+                                ? NetworkImage(avatarUrl)
+                                : null,
+                        child: (avatarUrl == null || avatarUrl.isEmpty)
+                            ? Icon(Icons.person_outline,
+                                size: 40,
+                                color: theme.colorScheme.onPrimaryContainer)
+                            : null,
+                      ),
                     ),
                   ),
-                  const SizedBox(height: 12),
-                  Text(profile?.name ?? '未设置昵称',
-                      style: theme.textTheme.titleMedium),
+                  const SizedBox(height: 16),
+                  Text(
+                    profile?.name ?? '未设置昵称',
+                    style: serifDisplay(size: 24),
+                  ),
+                  const SizedBox(height: 2),
                   TextButton.icon(
                     onPressed: _editProfile,
-                    icon: const Icon(Icons.edit, size: 16),
+                    icon: const Icon(Icons.edit_outlined, size: 15),
                     label: const Text('编辑资料'),
                   ),
                 ],
               );
             },
           ),
-          const SizedBox(height: 12),
-          ListTile(
-            leading: const Icon(Icons.photo_library_outlined),
-            title: const Text('我的照片'),
-            onTap: _openMyPhotos,
-          ),
-          ListTile(
-            leading: const Icon(Icons.bookmark_border),
-            title: const Text('我的收藏'),
-            onTap: _openMyFavorites,
-          ),
-          const ListTile(
-            leading: Icon(Icons.group_add_outlined),
-            title: Text('邀请好友'),
-          ),
-          ListTile(
-            leading: const Icon(Icons.water_drop_outlined),
-            title: const Text('漂流瓶'),
-            onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const DriftBottlePage()),
+          const SizedBox(height: 20),
+          _MenuGroup(children: [
+            _MenuTile(
+              icon: Icons.photo_library_outlined,
+              title: '我的照片',
+              onTap: _openMyPhotos,
             ),
-          ),
-          ListTile(
-            leading: const Icon(Icons.palette_outlined),
-            title: const Text('配色方案'),
-            onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const SettingsPage()),
+            _MenuTile(
+              icon: Icons.bookmark_border,
+              title: '我的收藏',
+              onTap: _openMyFavorites,
             ),
-          ),
-          const Divider(),
-          ListTile(
-            leading: Icon(Icons.logout, color: theme.colorScheme.error),
-            title: Text('退出登录',
-                style: TextStyle(color: theme.colorScheme.error)),
-            onTap: () async {
-              final prefs = await SharedPreferences.getInstance();
-              await prefs.remove('joined_circle');
-              if (context.mounted) context.go('/login');
-            },
-          ),
+            _MenuTile(
+              icon: Icons.water_drop_outlined,
+              title: '漂流瓶',
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const DriftBottlePage()),
+              ),
+            ),
+          ]),
+          const SizedBox(height: 16),
+          _MenuGroup(children: [
+            _MenuTile(
+              icon: Icons.group_add_outlined,
+              title: '邀请好友',
+              onTap: () {},
+            ),
+            _MenuTile(
+              icon: Icons.palette_outlined,
+              title: '配色方案',
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const SettingsPage()),
+              ),
+            ),
+          ]),
+          const SizedBox(height: 16),
+          _MenuGroup(children: [
+            _MenuTile(
+              icon: Icons.logout,
+              title: '退出登录',
+              danger: true,
+              onTap: () async {
+                final prefs = await SharedPreferences.getInstance();
+                await prefs.remove('joined_circle');
+                if (context.mounted) context.go('/login');
+              },
+            ),
+          ]),
         ],
       ),
+    );
+  }
+}
+
+/// 圆角分组容器。
+class _MenuGroup extends StatelessWidget {
+  const _MenuGroup({required this.children});
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5)),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        children: [
+          for (var i = 0; i < children.length; i++) ...[
+            if (i > 0)
+              Divider(
+                  height: 1,
+                  indent: 52,
+                  color: theme.colorScheme.outlineVariant
+                      .withValues(alpha: 0.4)),
+            children[i],
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _MenuTile extends StatelessWidget {
+  const _MenuTile({
+    required this.icon,
+    required this.title,
+    required this.onTap,
+    this.danger = false,
+  });
+
+  final IconData icon;
+  final String title;
+  final VoidCallback onTap;
+  final bool danger;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final color = danger ? theme.colorScheme.error : theme.colorScheme.onSurface;
+    return ListTile(
+      leading: Icon(icon, size: 22, color: color),
+      title: Text(title, style: TextStyle(color: color, fontSize: 15)),
+      trailing: danger
+          ? null
+          : Icon(Icons.chevron_right,
+              size: 20, color: theme.colorScheme.outline),
+      onTap: onTap,
     );
   }
 }
