@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../profile/widgets/author_header.dart';
 import 'comment_repository.dart';
 
 /// 打开评论面板（底部弹出）。
@@ -100,13 +101,19 @@ class _CommentsSheetState extends State<_CommentsSheet> {
                       itemCount: comments.length,
                       itemBuilder: (context, i) {
                         final c = comments[i];
-                        return ListTile(
-                          leading: const CircleAvatar(
-                              child: Icon(Icons.person_outline)),
-                          title: Text(c.body),
-                          subtitle: Text(
-                            '${c.createdAt.year}-${c.createdAt.month.toString().padLeft(2, '0')}-${c.createdAt.day.toString().padLeft(2, '0')} '
-                            '${c.createdAt.hour.toString().padLeft(2, '0')}:${c.createdAt.minute.toString().padLeft(2, '0')}',
+                        return Padding(
+                          padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              AuthorHeader(
+                                  authorId: c.authorId, time: c.createdAt),
+                              const SizedBox(height: 6),
+                              Padding(
+                                padding: const EdgeInsets.only(left: 44),
+                                child: Text(c.body),
+                              ),
+                            ],
                           ),
                         );
                       },

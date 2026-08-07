@@ -247,8 +247,12 @@ create table if not exists public.invite_codes (
   code text primary key,
   used_by uuid references auth.users(id),
   used_at timestamptz,
+  permanent boolean not null default false,
   created_at timestamptz not null default now()
 );
+
+alter table public.invite_codes
+  add column if not exists permanent boolean not null default false;
 
 alter table public.invite_codes enable row level security;
 -- 不给普通用户直接读写策略；只能通过下面的 security definer 函数兑换。
@@ -261,13 +265,17 @@ set search_path = public
 as $$
 declare
   v_used_by uuid;
+  v_permanent boolean;
 begin
-  select used_by into v_used_by
+  select used_by, permanent into v_used_by, v_permanent
     from public.invite_codes
     where code = p_code
     for update;
   if not found then
     return false;               -- 码不存在
+  end if;
+  if v_permanent then
+    return true;                -- 永久码：无限次可用，不消费
   end if;
   if v_used_by is not null then
     return v_used_by = auth.uid();  -- 已被自己用过也放行；被别人用过则拒绝

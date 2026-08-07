@@ -65,9 +65,9 @@ ThemeData buildAppTheme(AppPalette p) {
     seedColor: p.primary,
     brightness: Brightness.light,
   );
+  // 主色用 fromSeed 推导版（保证与白底/文字的对比度，避免浅色系看不清）；
+  // 辅色/点缀色采用调色板自定义。
   final scheme = base.copyWith(
-    primary: p.primary,
-    onPrimary: onColorFor(p.primary),
     secondary: p.secondary,
     onSecondary: onColorFor(p.secondary),
     tertiary: p.accent,

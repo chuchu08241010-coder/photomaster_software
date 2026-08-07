@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/widgets/image_viewer_page.dart';
+import '../../../core/widgets/network_photo.dart';
 import '../../profile/widgets/author_header.dart';
 import '../../social/item_type.dart';
 import '../../social/post_actions_bar.dart';
@@ -29,21 +31,25 @@ class PhotoPostCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
+            padding: const EdgeInsets.fromLTRB(12, 10, 12, 6),
             child: AuthorHeader(authorId: post.authorId, time: post.createdAt),
           ),
           if (post.imageUrls.isNotEmpty)
             AspectRatio(
-              aspectRatio: 1,
+              aspectRatio: 4 / 3,
               child: PageView(
                 children: [
-                  for (final url in post.imageUrls)
-                    Image.network(url, fit: BoxFit.cover),
+                  for (var i = 0; i < post.imageUrls.length; i++)
+                    GestureDetector(
+                      onTap: () => ImageViewerPage.open(
+                          context, post.imageUrls, i),
+                      child: NetworkPhoto(post.imageUrls[i]),
+                    ),
                 ],
               ),
             ),
           Padding(
-            padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+            padding: const EdgeInsets.fromLTRB(12, 10, 12, 0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [

@@ -8,24 +8,28 @@ import 'exif_info.dart';
 /// 图片本地分析：EXIF 拍摄参数解析 + 端侧图像标签（自动 tag）。
 /// 全部离线，不上传图片。网页端 ML Kit 不可用会自动跳过。
 class ImageAnalysis {
-  /// 读取一张图的拍摄参数。
+  /// 读取一张图的拍摄参数。任何异常都吞掉返回 null，避免影响发帖。
   static Future<ExifInfo?> readExif(XFile file) async {
-    final data = await readExifFromBytes(await file.readAsBytes());
-    if (data.isEmpty) return null;
+    try {
+      final data = await readExifFromBytes(await file.readAsBytes());
+      if (data.isEmpty) return null;
 
-    String? raw(String key) {
-      final v = data[key]?.printable.trim();
-      return (v == null || v.isEmpty) ? null : v;
+      String? raw(String key) {
+        final v = data[key]?.printable.trim();
+        return (v == null || v.isEmpty) ? null : v;
+      }
+
+      final info = ExifInfo(
+        model: raw('Image Model'),
+        aperture: _formatAperture(raw('EXIF FNumber')),
+        shutter: _formatShutter(raw('EXIF ExposureTime')),
+        iso: raw('EXIF ISOSpeedRatings'),
+        focalLength: _formatFocal(raw('EXIF FocalLength')),
+      );
+      return info.isEmpty ? null : info;
+    } catch (_) {
+      return null;
     }
-
-    final info = ExifInfo(
-      model: raw('Image Model'),
-      aperture: _formatAperture(raw('EXIF FNumber')),
-      shutter: _formatShutter(raw('EXIF ExposureTime')),
-      iso: raw('EXIF ISOSpeedRatings'),
-      focalLength: _formatFocal(raw('EXIF FocalLength')),
-    );
-    return info.isEmpty ? null : info;
   }
 
   /// 端侧图像标签，返回建议标签（英文，用户可编辑）。网页端返回空。
