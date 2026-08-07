@@ -79,12 +79,23 @@ class PhotoPostRepository {
     return PhotoPost.fromMap(inserted);
   }
 
-  /// 删除自己的帖子（RLS 保证）。
+  /// 删除自己的帖子（RLS 保证），并清理其图片文件。
   Future<void> delete(String id) async {
+    final row = await supabase
+        .from('photo_posts')
+        .select('image_urls')
+        .eq('id', id)
+        .maybeSingle();
+    if (row != null) {
+      final urls = ((row['image_urls'] as List?) ?? const [])
+          .map((e) => e.toString());
+      await deleteStorageByUrls(urls);
+    }
     await supabase.from('photo_posts').delete().eq('id', id);
   }
 
   /// 编辑自己的摄影帖：keepUrls 保留的原图，newImages 新增图。
+  /// 被移除的原图会从存储中一并删除。
   Future<void> updatePost({
     required String id,
     required List<String> keepUrls,
@@ -94,6 +105,15 @@ class PhotoPostRepository {
     String? location,
     ExifInfo? exif,
   }) async {
+    final current = await supabase
+        .from('photo_posts')
+        .select('image_urls')
+        .eq('id', id)
+        .maybeSingle();
+    final oldUrls = ((current?['image_urls'] as List?) ?? const [])
+        .map((e) => e.toString())
+        .toSet();
+
     final urls = [...keepUrls];
     for (final image in newImages) {
       urls.add(await uploadImage(image, prefix: 'photo'));
@@ -105,6 +125,9 @@ class PhotoPostRepository {
       'image_urls': urls,
       'exif': (exif == null || exif.isEmpty) ? null : exif.toJson(),
     }).eq('id', id);
+
+    // 清理被移除的原图。
+    await deleteStorageByUrls(oldUrls.difference(keepUrls.toSet()));
   }
 
   /// 关键词搜索：匹配文案/地址（模糊）或标签（包含）。

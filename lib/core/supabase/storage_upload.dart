@@ -8,8 +8,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'supabase_client.dart';
 
 const String _bucket = 'post-images';
-const int _maxDimension = 1600; // 上传前压缩到最长边不超过此值
-const int _jpegQuality = 82;
+const int _maxDimension = 1280; // 上传前压缩到最长边不超过此值
+const int _jpegQuality = 78;
 
 /// 跨平台上传一张图片到 post-images 桶，返回公开 URL。
 /// 上传前压缩（解码→缩放→重编码 JPEG），大幅减小体积、加快上传与显示。
@@ -30,6 +30,27 @@ Future<String> uploadImage(XFile image, {required String prefix}) async {
         fileOptions: FileOptions(contentType: result.mime),
       );
   return supabase.storage.from(_bucket).getPublicUrl(objectPath);
+}
+
+/// 删除一组公开 URL 对应的存储文件（清理孤儿文件，避免删帖后仍占空间）。
+/// 只处理属于本桶的 URL；任何异常都吞掉，不影响主删除流程。
+Future<void> deleteStorageByUrls(Iterable<String> urls) async {
+  const marker = '/object/public/$_bucket/';
+  final paths = <String>[];
+  for (final url in urls) {
+    final i = url.indexOf(marker);
+    if (i < 0) continue;
+    var path = url.substring(i + marker.length);
+    final q = path.indexOf('?');
+    if (q >= 0) path = path.substring(0, q);
+    if (path.isNotEmpty) paths.add(Uri.decodeComponent(path));
+  }
+  if (paths.isEmpty) return;
+  try {
+    await supabase.storage.from(_bucket).remove(paths);
+  } catch (_) {
+    // 忽略：文件可能已不存在
+  }
 }
 
 class _Compressed {

@@ -187,6 +187,15 @@ class CampaignRepository {
     required List<XFile> newImages,
     required String caption,
   }) async {
+    final current = await supabase
+        .from('campaign_entries')
+        .select('image_urls')
+        .eq('id', entryId)
+        .maybeSingle();
+    final oldUrls = ((current?['image_urls'] as List?) ?? const [])
+        .map((e) => e.toString())
+        .toSet();
+
     final urls = [...keepUrls];
     for (final img in newImages) {
       urls.add(await uploadImage(img, prefix: 'entry'));
@@ -196,9 +205,21 @@ class CampaignRepository {
       'caption': caption,
       'updated_at': DateTime.now().toIso8601String(),
     }).eq('id', entryId);
+
+    await deleteStorageByUrls(oldUrls.difference(keepUrls.toSet()));
   }
 
   Future<void> deleteEntry(String entryId) async {
+    final row = await supabase
+        .from('campaign_entries')
+        .select('image_urls')
+        .eq('id', entryId)
+        .maybeSingle();
+    if (row != null) {
+      final urls = ((row['image_urls'] as List?) ?? const [])
+          .map((e) => e.toString());
+      await deleteStorageByUrls(urls);
+    }
     await supabase.from('campaign_entries').delete().eq('id', entryId);
   }
 
