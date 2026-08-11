@@ -531,3 +531,187 @@ create policy "app_release_select" on public.app_release
 --   notes = excluded.notes,
 --   url = excluded.url,
 --   updated_at = now();
+
+-- ============================================================
+-- 邀请制圈子：成员准入（数据库层 RLS 强制）
+-- 逻辑：任何人都能用邮箱验证码「登录」拿到身份，但只有兑换过邀请码、
+-- 成为 circle_members 的用户，才能读写圈子内容。非成员什么都看不到。
+-- ============================================================
+
+create table if not exists public.circle_members (
+  user_id uuid primary key references auth.users(id) on delete cascade,
+  joined_at timestamptz not null default now()
+);
+
+alter table public.circle_members enable row level security;
+
+-- 用户可读自己的成员记录（App 用来判断是否已加入）；不开放直接写入。
+drop policy if exists "circle_members_select_self" on public.circle_members;
+create policy "circle_members_select_self" on public.circle_members
+  for select to authenticated using (user_id = auth.uid());
+
+-- 是否为圈子成员（security definer，避免 RLS 递归）
+create or replace function public.is_member()
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists(
+    select 1 from public.circle_members where user_id = auth.uid()
+  );
+$$;
+
+grant execute on function public.is_member() to authenticated;
+
+-- 邀请码兑换：成功即加入圈子（写入 circle_members）
+create or replace function public.redeem_invite(p_code text)
+returns boolean
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_used_by uuid;
+  v_permanent boolean;
+begin
+  select used_by, permanent into v_used_by, v_permanent
+    from public.invite_codes where code = p_code for update;
+  if not found then
+    return false;                        -- 码不存在
+  end if;
+
+  if v_permanent then                    -- 永久码：无限次可用
+    insert into public.circle_members(user_id)
+      values (auth.uid()) on conflict do nothing;
+    return true;
+  end if;
+
+  if v_used_by is not null then          -- 一次性码已被使用
+    if v_used_by = auth.uid() then       -- 是自己用过的，放行
+      insert into public.circle_members(user_id)
+        values (auth.uid()) on conflict do nothing;
+      return true;
+    end if;
+    return false;                        -- 被别人用过，拒绝
+  end if;
+
+  update public.invite_codes
+    set used_by = auth.uid(), used_at = now() where code = p_code;
+  insert into public.circle_members(user_id)
+    values (auth.uid()) on conflict do nothing;
+  return true;
+end;
+$$;
+
+grant execute on function public.redeem_invite(text) to authenticated;
+
+-- ---- 重设内容表策略：读/写都要求是圈子成员 ----
+
+-- profiles（自己那行始终可读，用于判断加入状态；其余需成员）
+drop policy if exists "profiles_select" on public.profiles;
+create policy "profiles_select" on public.profiles
+  for select to authenticated using (id = auth.uid() or public.is_member());
+drop policy if exists "profiles_insert_own" on public.profiles;
+create policy "profiles_insert_own" on public.profiles
+  for insert to authenticated with check (auth.uid() = id and public.is_member());
+
+-- photo_posts
+drop policy if exists "photo_posts_select" on public.photo_posts;
+create policy "photo_posts_select" on public.photo_posts
+  for select to authenticated using (public.is_member());
+drop policy if exists "photo_posts_insert_own" on public.photo_posts;
+create policy "photo_posts_insert_own" on public.photo_posts
+  for insert to authenticated with check (auth.uid() = author_id and public.is_member());
+
+-- text_posts
+drop policy if exists "text_posts_select" on public.text_posts;
+create policy "text_posts_select" on public.text_posts
+  for select to authenticated using (public.is_member());
+drop policy if exists "text_posts_insert_own" on public.text_posts;
+create policy "text_posts_insert_own" on public.text_posts
+  for insert to authenticated with check (auth.uid() = author_id and public.is_member());
+
+-- food_posts（遗留）
+drop policy if exists "food_posts_select" on public.food_posts;
+create policy "food_posts_select" on public.food_posts
+  for select to authenticated using (public.is_member());
+drop policy if exists "food_posts_insert_own" on public.food_posts;
+create policy "food_posts_insert_own" on public.food_posts
+  for insert to authenticated with check (auth.uid() = author_id and public.is_member());
+
+-- favorites
+drop policy if exists "favorites_select" on public.favorites;
+create policy "favorites_select" on public.favorites
+  for select to authenticated using (public.is_member());
+drop policy if exists "favorites_insert_own" on public.favorites;
+create policy "favorites_insert_own" on public.favorites
+  for insert to authenticated with check (auth.uid() = user_id and public.is_member());
+
+-- comments
+drop policy if exists "comments_select" on public.comments;
+create policy "comments_select" on public.comments
+  for select to authenticated using (public.is_member());
+drop policy if exists "comments_insert_own" on public.comments;
+create policy "comments_insert_own" on public.comments
+  for insert to authenticated with check (auth.uid() = author_id and public.is_member());
+
+-- announcements（只读）
+drop policy if exists "announcements_select" on public.announcements;
+create policy "announcements_select" on public.announcements
+  for select to authenticated using (active = true and public.is_member());
+
+-- drift_bottles
+drop policy if exists "drift_select" on public.drift_bottles;
+create policy "drift_select" on public.drift_bottles
+  for select to authenticated using (public.is_member());
+drop policy if exists "drift_insert_own" on public.drift_bottles;
+create policy "drift_insert_own" on public.drift_bottles
+  for insert to authenticated with check (auth.uid() = author_id and public.is_member());
+
+-- campaigns
+drop policy if exists "campaigns_select" on public.campaigns;
+create policy "campaigns_select" on public.campaigns
+  for select to authenticated using (public.is_member());
+drop policy if exists "campaigns_insert_own" on public.campaigns;
+create policy "campaigns_insert_own" on public.campaigns
+  for insert to authenticated with check (created_by = auth.uid() and public.is_member());
+
+-- campaign_entries
+drop policy if exists "campaign_entries_select" on public.campaign_entries;
+create policy "campaign_entries_select" on public.campaign_entries
+  for select to authenticated using (public.is_member());
+drop policy if exists "campaign_entries_insert_own" on public.campaign_entries;
+create policy "campaign_entries_insert_own" on public.campaign_entries
+  for insert to authenticated with check (author_id = auth.uid() and public.is_member());
+
+-- campaign_entry_likes
+drop policy if exists "campaign_likes_select" on public.campaign_entry_likes;
+create policy "campaign_likes_select" on public.campaign_entry_likes
+  for select to authenticated using (public.is_member());
+drop policy if exists "campaign_likes_insert_own" on public.campaign_entry_likes;
+create policy "campaign_likes_insert_own" on public.campaign_entry_likes
+  for insert to authenticated with check (user_id = auth.uid() and public.is_member());
+
+-- storage：图片桶读/写都要求成员
+drop policy if exists "post_images_select" on storage.objects;
+create policy "post_images_select" on storage.objects
+  for select to authenticated
+  using (bucket_id = 'post-images' and public.is_member());
+drop policy if exists "post_images_insert_own" on storage.objects;
+create policy "post_images_insert_own" on storage.objects
+  for insert to authenticated
+  with check (
+    bucket_id = 'post-images'
+    and (storage.foldername(name))[1] = auth.uid()::text
+    and public.is_member()
+  );
+
+-- ★建一个永久邀请码（发给朋友）：
+-- insert into public.invite_codes(code, permanent) values ('PM-CIRCLE', true)
+--   on conflict (code) do update set permanent = true;
+--
+-- ★把「你自己」直接设为成员（避免自己也要输码）：
+-- insert into public.circle_members(user_id) values (auth.uid()) on conflict do nothing;
+--   （在 SQL Editor 里以你自己的登录态执行，或用你的 user id 替换 auth.uid()）

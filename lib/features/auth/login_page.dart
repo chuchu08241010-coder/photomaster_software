@@ -22,6 +22,7 @@ enum _Phase { loading, email, code, profile }
 class _LoginPageState extends State<LoginPage> {
   final _emailController = TextEditingController();
   final _codeController = TextEditingController();
+  final _inviteController = TextEditingController();
   final _nameController = TextEditingController();
   final _profileRepo = ProfileRepository();
 
@@ -38,6 +39,7 @@ class _LoginPageState extends State<LoginPage> {
   void dispose() {
     _emailController.dispose();
     _codeController.dispose();
+    _inviteController.dispose();
     _nameController.dispose();
     super.dispose();
   }
@@ -131,13 +133,26 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Future<void> _finishProfile() async {
+    final code = _inviteController.text.trim();
     final name = _nameController.text.trim();
+    if (code.isEmpty) {
+      _snack('请输入邀请码');
+      return;
+    }
     if (name.isEmpty) {
       _snack('请设置一个昵称');
       return;
     }
     setState(() => _submitting = true);
     try {
+      // 先兑换邀请码→成为圈子成员，再写资料。
+      final ok = await supabase
+          .rpc('redeem_invite', params: {'p_code': code}) as bool?;
+      if (ok != true) {
+        _snack('邀请码无效或已被使用');
+        setState(() => _submitting = false);
+        return;
+      }
       await _profileRepo.upsert(displayName: name);
       if (!mounted) return;
       await _goHome();
@@ -248,9 +263,18 @@ class _LoginPageState extends State<LoginPage> {
         ];
       case _Phase.profile:
         return [
-          Text('首次加入，给自己起个昵称',
+          Text('首次加入，输邀请码并设个昵称',
               textAlign: TextAlign.center, style: theme.textTheme.titleMedium),
           const SizedBox(height: 16),
+          TextField(
+            controller: _inviteController,
+            textAlign: TextAlign.center,
+            decoration: const InputDecoration(
+              labelText: '邀请码',
+              hintText: '输入朋友分享给你的邀请码',
+            ),
+          ),
+          const SizedBox(height: 12),
           TextField(
             controller: _nameController,
             textAlign: TextAlign.center,
@@ -265,7 +289,7 @@ class _LoginPageState extends State<LoginPage> {
             onPressed: _submitting ? null : _finishProfile,
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 12),
-              child: _submitting ? _spinner() : const Text('进入'),
+              child: _submitting ? _spinner() : const Text('进入圈子'),
             ),
           ),
         ];
