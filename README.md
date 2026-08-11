@@ -101,7 +101,57 @@ flutter build web --release --no-web-resources-cdn --dart-define-from-file=env/s
 flutter build apk --release --dart-define-from-file=env/supabase.json
 ```
 
-## 📁 目录结构
+## � 配置你自己的 Supabase（详细步骤）
+
+本项目自带一个 Supabase 项目才能跑起来（免费额度即可）。**每个人用自己的 Supabase，数据互不相通。**
+
+### 1. 新建项目
+1. 注册并登录 [supabase.com](https://supabase.com/)，点 **New project**。
+2. 填项目名、数据库密码、地区（选离你近的），等待初始化完成。
+
+### 2. 初始化数据库
+1. 左侧进入 **SQL Editor** → New query。
+2. 打开本仓库的 [`supabase/schema.sql`](supabase/schema.sql)，**全选复制**，粘贴后点 **Run**。
+   - 这一步会自动建好所有表、行级安全策略（RLS）、函数、触发器，以及图片存储桶 `post-images`。
+   - 脚本可重复运行（都是 `if not exists` / `drop policy if exists`），安全。
+
+### 3. 打开邮箱验证码登录
+1. **Authentication → Providers → Email**：开启，并允许新用户注册。
+2. **Authentication → Email Templates**：把 **Magic Link** 和 **Confirm signup** 两个模板的正文加入验证码变量 `{{ .Token }}`，例如：
+   ```html
+   <h2>登录验证码</h2>
+   <p style="font-size:28px;font-weight:bold;letter-spacing:4px;">{{ .Token }}</p>
+   ```
+3.（可选，推荐）**Authentication → SMTP Settings** 配置自定义 SMTP（如 QQ/163/Brevo），否则内置邮件有严格的发送频率限制、且模板可能不可编辑。
+
+### 4. 取得连接凭据
+在 **Project Settings → API** 页面复制：
+- **Project URL** → 填到 `SUPABASE_URL`
+- **anon / publishable key**（`publishable`，**不要用 `service_role`**）→ 填到 `SUPABASE_PUBLISHABLE_KEY`
+
+### 5. 写入本地配置（不会进 git）
+```bash
+cp env/supabase.json.example env/supabase.json
+```
+编辑 `env/supabase.json`：
+```jsonc
+{
+  "SUPABASE_URL": "https://<你的项目ref>.supabase.co",
+  "SUPABASE_PUBLISHABLE_KEY": "<你的 publishable key>"
+}
+```
+> 该文件已被 `.gitignore` 忽略——**你的凭据只留在本地，绝不会被提交或开源**。
+
+### 6. 运行
+```bash
+flutter pub get
+flutter run --dart-define-from-file=env/supabase.json
+```
+首次用邮箱登录：输入邮箱 → 收验证码 → 输码 → 设昵称即可进入。
+
+> ⚠️ **安全提示**：`service_role` 密钥拥有绕过 RLS 的最高权限，**只能用于服务端、切勿写进客户端或提交到仓库**。客户端只用 `publishable/anon` key。
+
+## �📁 目录结构
 
 ```
 lib/
