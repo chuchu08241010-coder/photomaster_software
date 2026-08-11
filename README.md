@@ -14,11 +14,39 @@ PhotoMaster 是一个面向好友小圈子的摄影分享应用，并内置**完
 - **邮箱验证码登录**：身份绑定邮箱，换设备/重装可找回。
 - **其他**：漂流瓶每日开场、评论通知、IP 属地、应用内新版本提示、多套配色主题、使用说明。
 
+## 📸 截图
+
+> 把截图放到 `docs/screenshots/` 下并替换下面链接。
+
+| 时间线 | 画质分析 | 竞品对比 |
+|---|---|---|
+| ![timeline](docs/screenshots/timeline.png) | ![analysis](docs/screenshots/analysis.png) | ![compare](docs/screenshots/compare.png) |
+
 ## 🧩 技术栈
 
 - **前端**：Flutter / Dart，Riverpod（状态）、go_router（路由）、`image` / `exif`（端侧图像处理）、cached_network_image
 - **后端**：Supabase（Auth + PostgreSQL + Storage，行级安全 RLS）
 - **部署**：Web → Netlify；Android → 签名 APK
+
+## 🏗️ 架构
+
+```mermaid
+flowchart LR
+  subgraph Client["Flutter 客户端 · Android / Web"]
+    UI["UI：摄影 / 活动 / 分析 / 我的"]
+    Lab["端侧画质分析（直方图/波形/清晰度/噪声/对比度/动态范围）"]
+    AuthC["邮箱验证码登录"]
+  end
+  subgraph Backend["Supabase 后端"]
+    DB[("PostgreSQL + RLS")]
+    Store[("Storage 图片桶")]
+    Auth["Auth"]
+  end
+  UI -->|"发帖/评论/收藏/投稿"| DB
+  UI -->|"上传压缩图"| Store
+  AuthC --> Auth
+  Lab -. "本地计算，不上传原图" .- UI
+```
 
 ## 🔬 端侧画质分析算法
 

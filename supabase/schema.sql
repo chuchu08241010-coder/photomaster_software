@@ -343,9 +343,10 @@ drop policy if exists "intro_wall_select" on public.intro_wall;
 create policy "intro_wall_select" on public.intro_wall
   for select to anon, authenticated using (true);
 
+-- 收紧：只允许已登录用户写入（防止公开 anon key 被机器人灌垃圾数据）。
 drop policy if exists "intro_wall_insert" on public.intro_wall;
 create policy "intro_wall_insert" on public.intro_wall
-  for insert to anon, authenticated
+  for insert to authenticated
   with check (char_length(body) <= 500 and char_length(name) <= 40);
 
 -- ============ 主题投稿活动 ============
