@@ -2,7 +2,7 @@
 # 文档：https://docs.codemagic.io/yaml/yaml-getting-started/
 #
 # 使用前需在 Codemagic 里创建一个「环境变量组」名为 supabase，包含：
-#   SUPABASE_URL              = https://hubcqyulnxejvhcfmjxb.supabase.co
+#   SUPABASE_URL              = https://your-project-ref.supabase.co
 #   SUPABASE_PUBLISHABLE_KEY  = <你的 anon/publishable key>
 # （这两个值本地在 env/supabase.json，因为该文件被 git 忽略，需在 Codemagic 里另配。）
 

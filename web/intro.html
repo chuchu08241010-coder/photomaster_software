@@ -97,8 +97,8 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
     // 公开的 anon key（客户端可用，配合 RLS）。
-    const SUPABASE_URL = 'https://hubcqyulnxejvhcfmjxb.supabase.co';
-    const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh1YmNxeXVsbnhlanZoY2ZtanhiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0NDA5MzUsImV4cCI6MjEwMTAxNjkzNX0._z7TFx6N4LXcNTeVcxWWn5waQ8S0tONASisq56YlATY';
+    const SUPABASE_URL = 'YOUR_SUPABASE_URL';
+    const SUPABASE_ANON = 'YOUR_SUPABASE_ANON_KEY';
     const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
     const $ = (id) => document.getElementById(id);
