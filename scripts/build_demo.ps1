@@ -1,4 +1,4 @@
-# 构建「网友体验版(demo)」网页 —— 连的是独立的 demo Supabase，不碰你的私有圈子。
+﻿# 构建「网友体验版(demo)」网页 —— 连的是独立的 demo Supabase，不碰你的私有圈子。
 # 用法：在项目根目录 PowerShell 里运行  ./scripts/build_demo.ps1
 # 产物在 netlify_demo/（已 gitignore），把它整个文件夹拖到一个「新的」Netlify 站点即可。
 
