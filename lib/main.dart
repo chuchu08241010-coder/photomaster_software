@@ -14,8 +14,18 @@ Future<void> main() async {
       url: SupabaseConfig.url,
       publishableKey: SupabaseConfig.publishableKey,
     );
-    // 身份改为邮箱验证码登录（持久会话，换设备可找回）。
-    // 会话由 supabase_flutter 本地持久化，登录页据此判断是否已登录。
+    // 正式版：邮箱验证码登录（持久会话，换设备可找回）。
+    // 体验版(demo)：匿名登录 + 永久邀请码，避免邮箱被刷。
+    if (SupabaseConfig.isDemo) {
+      final auth = Supabase.instance.client.auth;
+      if (auth.currentSession == null) {
+        try {
+          await auth.signInAnonymously();
+        } catch (e) {
+          debugPrint('demo 匿名登录失败: $e');
+        }
+      }
+    }
   }
 
   runApp(const ProviderScope(child: PhotoMasterApp()));

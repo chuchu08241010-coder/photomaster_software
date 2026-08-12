@@ -18,7 +18,7 @@ $env:PUB_CACHE = "E:\PubCache"
 $env:PATH = "E:\huangdianyi\flutter\bin;$env:JAVA_HOME\bin;$env:PATH"
 
 Write-Host "==> 构建 demo web ..." -ForegroundColor Cyan
-flutter build web --release --no-web-resources-cdn --dart-define-from-file=env/supabase.demo.json
+flutter build web --release --no-web-resources-cdn --dart-define=DEMO=true --dart-define-from-file=env/supabase.demo.json
 
 Write-Host "==> 同步到 netlify_demo/ ..." -ForegroundColor Cyan
 New-Item -ItemType Directory -Force netlify_demo | Out-Null

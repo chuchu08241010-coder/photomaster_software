@@ -22,6 +22,7 @@ enum _Phase { loading, email, code, profile }
 class _LoginPageState extends State<LoginPage> {
   final _emailController = TextEditingController();
   final _codeController = TextEditingController();
+  final _inviteController = TextEditingController();
   final _nameController = TextEditingController();
   final _profileRepo = ProfileRepository();
 
@@ -38,6 +39,7 @@ class _LoginPageState extends State<LoginPage> {
   void dispose() {
     _emailController.dispose();
     _codeController.dispose();
+    _inviteController.dispose();
     _nameController.dispose();
     super.dispose();
   }
@@ -47,7 +49,13 @@ class _LoginPageState extends State<LoginPage> {
       setState(() => _phase = _Phase.email);
       return;
     }
-    // 已有会话：老用户直接进；无资料则去补邀请码+昵称。
+    // 体验版：确保拿到匿名会话（不发邮件）。
+    if (SupabaseConfig.isDemo && supabase.auth.currentSession == null) {
+      try {
+        await supabase.auth.signInAnonymously();
+      } catch (_) {}
+    }
+    // 已有会话：老用户直接进；无资料则去补（正式版=昵称；体验版=邀请码+昵称）。
     if (supabase.auth.currentSession != null) {
       try {
         final profile = await _profileRepo.getMine();
@@ -59,12 +67,19 @@ class _LoginPageState extends State<LoginPage> {
         if (mounted) setState(() => _phase = _Phase.profile);
         return;
       } catch (_) {
-        // 拉取失败（多为离线）：既然有会话，按老用户放行。
-        await _goHome();
+        // 拉取失败：体验版仍去填邀请码；正式版按老用户放行。
+        if (SupabaseConfig.isDemo) {
+          if (mounted) setState(() => _phase = _Phase.profile);
+        } else {
+          await _goHome();
+        }
         return;
       }
     }
-    if (mounted) setState(() => _phase = _Phase.email);
+    if (mounted) {
+      setState(() =>
+          _phase = SupabaseConfig.isDemo ? _Phase.profile : _Phase.email);
+    }
   }
 
   /// 进入主界面：每日首次先展示漂流瓶开场，否则直达时间线。
@@ -138,6 +153,25 @@ class _LoginPageState extends State<LoginPage> {
     }
     setState(() => _submitting = true);
     try {
+      // 体验版：先用永久邀请码兑换（匿名身份即可），不走邮箱。
+      if (SupabaseConfig.isDemo) {
+        final code = _inviteController.text.trim();
+        if (code.isEmpty) {
+          _snack('请输入体验邀请码');
+          setState(() => _submitting = false);
+          return;
+        }
+        if (supabase.auth.currentSession == null) {
+          await supabase.auth.signInAnonymously();
+        }
+        final ok = await supabase
+            .rpc('redeem_invite', params: {'p_code': code}) as bool?;
+        if (ok != true) {
+          _snack('邀请码无效');
+          setState(() => _submitting = false);
+          return;
+        }
+      }
       await _profileRepo.upsert(displayName: name);
       if (!mounted) return;
       await _goHome();
@@ -248,9 +282,23 @@ class _LoginPageState extends State<LoginPage> {
         ];
       case _Phase.profile:
         return [
-          Text('首次加入，给自己起个昵称',
+          Text(
+              SupabaseConfig.isDemo
+                  ? '体验版 · 输入邀请码 + 昵称即可进入'
+                  : '首次加入，给自己起个昵称',
               textAlign: TextAlign.center, style: theme.textTheme.titleMedium),
           const SizedBox(height: 16),
+          if (SupabaseConfig.isDemo) ...[
+            TextField(
+              controller: _inviteController,
+              textAlign: TextAlign.center,
+              decoration: const InputDecoration(
+                labelText: '体验邀请码',
+                hintText: '如 PMDEMO',
+              ),
+            ),
+            const SizedBox(height: 12),
+          ],
           TextField(
             controller: _nameController,
             textAlign: TextAlign.center,

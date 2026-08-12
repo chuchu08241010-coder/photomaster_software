@@ -19,4 +19,8 @@ class SupabaseConfig {
   /// 是否已提供有效的云端凭据。
   static bool get isConfigured =>
       url.isNotEmpty && publishableKey.isNotEmpty;
+
+  /// 体验版(demo)开关：用 --dart-define=DEMO=true 构建。
+  /// demo 版用「匿名登录 + 永久邀请码」进入，不走邮箱验证码（避免邮箱被刷）。
+  static const bool isDemo = bool.fromEnvironment('DEMO', defaultValue: false);
 }
