@@ -4,6 +4,12 @@
 
 简体中文 | [English](README.en.md)
 
+[![Stars](https://img.shields.io/github/stars/chuchu08241010-coder/photomaster_software?style=flat-square)](https://github.com/chuchu08241010-coder/photomaster_software/stargazers)
+[![Release](https://img.shields.io/github/v/release/chuchu08241010-coder/photomaster_software?style=flat-square)](https://github.com/chuchu08241010-coder/photomaster_software/releases)
+[![License](https://img.shields.io/github/license/chuchu08241010-coder/photomaster_software?style=flat-square)](LICENSE)
+![Flutter](https://img.shields.io/badge/Flutter-3.44+-02569B?style=flat-square&logo=flutter&logoColor=white)
+![Supabase](https://img.shields.io/badge/Supabase-3ECF8E?style=flat-square&logo=supabase&logoColor=white)
+
 PhotoMaster 是一个面向好友小圈子的摄影分享应用，并内置**完全在本地运行、不上传原图**的画质分析模块（直方图 / 波形 / 清晰度 / 噪声 / 对比度 / 动态范围 / EXIF），以及**竞品 A/B 客观对比**。
 
 ## ✨ 功能特性

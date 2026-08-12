@@ -4,6 +4,12 @@
 
 English | [简体中文](README.md)
 
+[![Stars](https://img.shields.io/github/stars/chuchu08241010-coder/photomaster_software?style=flat-square)](https://github.com/chuchu08241010-coder/photomaster_software/stargazers)
+[![Release](https://img.shields.io/github/v/release/chuchu08241010-coder/photomaster_software?style=flat-square)](https://github.com/chuchu08241010-coder/photomaster_software/releases)
+[![License](https://img.shields.io/github/license/chuchu08241010-coder/photomaster_software?style=flat-square)](LICENSE)
+![Flutter](https://img.shields.io/badge/Flutter-3.44+-02569B?style=flat-square&logo=flutter&logoColor=white)
+![Supabase](https://img.shields.io/badge/Supabase-3ECF8E?style=flat-square&logo=supabase&logoColor=white)
+
 PhotoMaster is a photo-sharing app for a small circle of friends, with a built-in image-quality analysis module that runs **entirely on-device (originals are never uploaded)** — histograms, waveform, sharpness, noise, contrast, dynamic range, EXIF — plus an **A/B objective comparison** tool.
 
 ## ✨ Features
