@@ -18,11 +18,9 @@ PhotoMaster 是一个面向好友小圈子的摄影分享应用，并内置**完
 
 ## 📸 截图
 
-> 把截图放到 `docs/screenshots/` 下并替换下面链接。
-
 | 时间线 | 画质分析 | 竞品对比 |
 |---|---|---|
-| ![timeline](docs/screenshots/timeline.png) | ![analysis](docs/screenshots/analysis.png) | ![compare](docs/screenshots/compare.png) |
+| ![时间线](docs/screenshots/timeline.jpg) | ![画质分析](docs/screenshots/analysis.jpg) | ![竞品对比](docs/screenshots/compare.jpg) |
 
 ## 🧩 技术栈
 
@@ -68,33 +66,15 @@ flowchart LR
 
 ### 环境要求
 - Flutter 3.44+（Dart 3.12+）
-- 一个 Supabase 项目（免费额度即可）
+- 一个 Supabase 项目（免费额度即可；后端与凭据配置见下方「配置你自己的 Supabase」）
 
-### 1) 配置后端
-在 [Supabase](https://supabase.com/) 新建项目，然后：
-- 打开 **SQL Editor**，粘贴并运行 [`supabase/schema.sql`](supabase/schema.sql)（建表 + RLS + 函数/触发器）。
-- **Authentication → Providers → Email** 打开，并把邮件模板加入 `{{ .Token }}`（验证码登录用）。
-
-### 2) 配置凭据（不入库）
-复制示例并填入你自己的项目地址与 publishable/anon key：
-```bash
-cp env/supabase.json.example env/supabase.json
-```
-```jsonc
-{
-  "SUPABASE_URL": "https://your-project-ref.supabase.co",
-  "SUPABASE_PUBLISHABLE_KEY": "your-publishable-key"
-}
-```
-> `env/supabase.json` 已在 `.gitignore` 中，不会被提交。
-
-### 3) 运行
+### 运行
 ```bash
 flutter pub get
 flutter run --dart-define-from-file=env/supabase.json
 ```
 
-### 4) 构建
+### 构建
 ```bash
 # Web（中国网络下加 --no-web-resources-cdn 避免 CanvasKit 从 Google CDN 加载）
 flutter build web --release --no-web-resources-cdn --dart-define-from-file=env/supabase.json
@@ -103,7 +83,7 @@ flutter build web --release --no-web-resources-cdn --dart-define-from-file=env/s
 flutter build apk --release --dart-define-from-file=env/supabase.json
 ```
 
-## � 配置你自己的 Supabase（详细步骤）
+## 🔧 配置你自己的 Supabase（详细步骤）
 
 本项目自带一个 Supabase 项目才能跑起来（免费额度即可）。**每个人用自己的 Supabase，数据互不相通。**
 
@@ -153,7 +133,7 @@ flutter run --dart-define-from-file=env/supabase.json
 
 > ⚠️ **安全提示**：`service_role` 密钥拥有绕过 RLS 的最高权限，**只能用于服务端、切勿写进客户端或提交到仓库**。客户端只用 `publishable/anon` key。
 
-## �📁 目录结构
+## 📁 目录结构
 
 ```
 lib/

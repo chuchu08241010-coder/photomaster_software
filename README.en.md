@@ -16,6 +16,12 @@ PhotoMaster is a photo-sharing app for a small circle of friends, with a built-i
 - **Email OTP login**: identity bound to email, recoverable across devices/reinstalls.
 - **More**: daily drift-bottle intro, comment notifications, IP region, in-app update prompt, multiple color themes, built-in manual.
 
+## 📸 Screenshots
+
+| Timeline | Image Analysis | A/B Comparison |
+|---|---|---|
+| ![Timeline](docs/screenshots/timeline.jpg) | ![Image Analysis](docs/screenshots/analysis.jpg) | ![A/B Comparison](docs/screenshots/compare.jpg) |
+
 ## 🧩 Tech Stack
 
 - **Frontend**: Flutter / Dart, Riverpod (state), go_router (routing), `image` / `exif` (on-device processing), cached_network_image
