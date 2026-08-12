@@ -17,7 +17,7 @@ class LoginPage extends StatefulWidget {
   State<LoginPage> createState() => _LoginPageState();
 }
 
-enum _Phase { loading, email, code, profile }
+enum _Phase { loading, email, code, profile, demo }
 
 class _LoginPageState extends State<LoginPage> {
   final _emailController = TextEditingController();
@@ -49,13 +49,21 @@ class _LoginPageState extends State<LoginPage> {
       setState(() => _phase = _Phase.email);
       return;
     }
-    // 体验版：确保拿到匿名会话（不发邮件）。
-    if (SupabaseConfig.isDemo && supabase.auth.currentSession == null) {
-      try {
-        await supabase.auth.signInAnonymously();
-      } catch (_) {}
+    // 体验版(demo)：用邀请码+昵称登录（匿名身份，不发邮件）。
+    if (SupabaseConfig.isDemo) {
+      if (supabase.auth.currentSession != null) {
+        try {
+          final profile = await _profileRepo.getMine();
+          if (profile?.displayName?.trim().isNotEmpty ?? false) {
+            await _goHome();
+            return;
+          }
+        } catch (_) {}
+      }
+      if (mounted) setState(() => _phase = _Phase.demo);
+      return;
     }
-    // 已有会话：老用户直接进；无资料则去补（正式版=昵称；体验版=邀请码+昵称）。
+    // 已有会话：老用户直接进；无资料则去补邀请码+昵称。
     if (supabase.auth.currentSession != null) {
       try {
         final profile = await _profileRepo.getMine();
@@ -67,19 +75,12 @@ class _LoginPageState extends State<LoginPage> {
         if (mounted) setState(() => _phase = _Phase.profile);
         return;
       } catch (_) {
-        // 拉取失败：体验版仍去填邀请码；正式版按老用户放行。
-        if (SupabaseConfig.isDemo) {
-          if (mounted) setState(() => _phase = _Phase.profile);
-        } else {
-          await _goHome();
-        }
+        // 拉取失败（多为离线）：既然有会话，按老用户放行。
+        await _goHome();
         return;
       }
     }
-    if (mounted) {
-      setState(() =>
-          _phase = SupabaseConfig.isDemo ? _Phase.profile : _Phase.email);
-    }
+    if (mounted) setState(() => _phase = _Phase.email);
   }
 
   /// 进入主界面：每日首次先展示漂流瓶开场，否则直达时间线。
@@ -153,24 +154,38 @@ class _LoginPageState extends State<LoginPage> {
     }
     setState(() => _submitting = true);
     try {
-      // 体验版：先用永久邀请码兑换（匿名身份即可），不走邮箱。
-      if (SupabaseConfig.isDemo) {
-        final code = _inviteController.text.trim();
-        if (code.isEmpty) {
-          _snack('请输入体验邀请码');
-          setState(() => _submitting = false);
-          return;
-        }
-        if (supabase.auth.currentSession == null) {
-          await supabase.auth.signInAnonymously();
-        }
-        final ok = await supabase
-            .rpc('redeem_invite', params: {'p_code': code}) as bool?;
-        if (ok != true) {
-          _snack('邀请码无效');
-          setState(() => _submitting = false);
-          return;
-        }
+      await _profileRepo.upsert(displayName: name);
+      if (!mounted) return;
+      await _goHome();
+    } catch (e) {
+      _snack('进入失败：$e');
+      setState(() => _submitting = false);
+    }
+  }
+
+  /// 体验版：验证永久邀请码 → 匿名登录 → 设昵称 → 进入。
+  Future<void> _enterDemo() async {
+    final code = _inviteController.text.trim();
+    final name = _nameController.text.trim();
+    if (code.isEmpty) {
+      _snack('请输入邀请码');
+      return;
+    }
+    if (name.isEmpty) {
+      _snack('请设置一个昵称');
+      return;
+    }
+    setState(() => _submitting = true);
+    try {
+      if (supabase.auth.currentSession == null) {
+        await supabase.auth.signInAnonymously();
+      }
+      final ok = await supabase
+          .rpc('redeem_invite', params: {'p_code': code}) as bool?;
+      if (ok != true) {
+        _snack('邀请码无效');
+        setState(() => _submitting = false);
+        return;
       }
       await _profileRepo.upsert(displayName: name);
       if (!mounted) return;
@@ -207,7 +222,10 @@ class _LoginPageState extends State<LoginPage> {
                     textAlign: TextAlign.center,
                     style: theme.textTheme.headlineMedium),
                 const SizedBox(height: 8),
-                Text('小圈子 · 影像分享与分析',
+                Text(
+                    SupabaseConfig.isDemo
+                        ? '体验版 · 用邀请码进入'
+                        : '小圈子 · 影像分享与分析',
                     textAlign: TextAlign.center,
                     style: theme.textTheme.bodyMedium
                         ?.copyWith(color: theme.colorScheme.outline)),
@@ -226,6 +244,36 @@ class _LoginPageState extends State<LoginPage> {
 
   List<Widget> _phaseBody(ThemeData theme) {
     switch (_phase) {
+      case _Phase.demo:
+        return [
+          TextField(
+            controller: _inviteController,
+            textAlign: TextAlign.center,
+            textCapitalization: TextCapitalization.characters,
+            decoration: const InputDecoration(
+              labelText: '邀请码',
+              hintText: '输入体验邀请码（如 PM-DEMO-001）',
+            ),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _nameController,
+            textAlign: TextAlign.center,
+            maxLength: 20,
+            decoration: const InputDecoration(
+              labelText: '昵称',
+              hintText: '给自己起个名字',
+            ),
+          ),
+          const SizedBox(height: 4),
+          FilledButton(
+            onPressed: _submitting ? null : _enterDemo,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              child: _submitting ? _spinner() : const Text('进入体验'),
+            ),
+          ),
+        ];
       case _Phase.email:
         return [
           TextField(
@@ -282,23 +330,9 @@ class _LoginPageState extends State<LoginPage> {
         ];
       case _Phase.profile:
         return [
-          Text(
-              SupabaseConfig.isDemo
-                  ? '体验版 · 输入邀请码 + 昵称即可进入'
-                  : '首次加入，给自己起个昵称',
+          Text('首次加入，给自己起个昵称',
               textAlign: TextAlign.center, style: theme.textTheme.titleMedium),
           const SizedBox(height: 16),
-          if (SupabaseConfig.isDemo) ...[
-            TextField(
-              controller: _inviteController,
-              textAlign: TextAlign.center,
-              decoration: const InputDecoration(
-                labelText: '体验邀请码',
-                hintText: '如 PMDEMO',
-              ),
-            ),
-            const SizedBox(height: 12),
-          ],
           TextField(
             controller: _nameController,
             textAlign: TextAlign.center,

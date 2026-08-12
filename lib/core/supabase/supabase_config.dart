@@ -20,7 +20,8 @@ class SupabaseConfig {
   static bool get isConfigured =>
       url.isNotEmpty && publishableKey.isNotEmpty;
 
-  /// 体验版(demo)开关：用 --dart-define=DEMO=true 构建。
-  /// demo 版用「匿名登录 + 永久邀请码」进入，不走邮箱验证码（避免邮箱被刷）。
-  static const bool isDemo = bool.fromEnvironment('DEMO', defaultValue: false);
+  /// 体验版(demo)编译开关：`--dart-define=DEMO=true`。
+  /// demo 模式用「永久邀请码 + 昵称 + 匿名身份」登录，不发邮件（防止邮箱被刷）。
+  static const bool isDemo =
+      bool.fromEnvironment('DEMO', defaultValue: false);
 }
