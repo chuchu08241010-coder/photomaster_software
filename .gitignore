@@ -63,3 +63,6 @@ app.*.map.json
 
 # 网友体验版（demo）部署目录，连的是独立 demo 数据库
 /netlify_demo/
+
+# 小红书/宣传素材（截图、封面），仅本地
+/REDBOOK/
